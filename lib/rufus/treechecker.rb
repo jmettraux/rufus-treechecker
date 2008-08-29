@@ -167,15 +167,29 @@ module Rufus
     # Here is how it's built :
     #
     #    return TreeChecker.new do
+    #      exclude_fvkcall :abort
+    #      exclude_fvkcall :exit, :exit!
+    #      exclude_fvkcall :system
     #      exclude_eval
-    #      # TODO : continue me
+    #      exclude_alias
+    #      exclude_global_vars
+    #      exclude_call_on File, FileUtils
+    #      exclude_class_tinkering
+    #      exclude_module_tinkering
     #    end
     #
     def self.new_classic_tree_checker
 
       return TreeChecker.new do
+        exclude_fvkcall :abort
+        exclude_fvkcall :exit, :exit!
+        exclude_fvkcall :system
         exclude_eval
-        # TODO : continue me
+        exclude_alias
+        exclude_global_vars
+        exclude_call_on File, FileUtils
+        exclude_class_tinkering
+        exclude_module_tinkering
       end
     end
 
@@ -320,14 +334,26 @@ module Rufus
     # the methods that actually perform the checks
     # (and potentially raise security exceptions)
 
+    #
+    # constructs a new set of arguments by inserting the newhead at the
+    # beginning of the arguments
+    #
+    def cons (newhead, args)
+
+      newhead = Array(newhead)
+      newhead << args[0]
+
+      [ newhead ] + (args[1, -1] || [])
+    end
+
     def do_exclude_fcall (sexp, args)
 
-      do_exclude_Xcall(:fcall, sexp, args)
+      do_exclude_head(sexp, cons(:fcall, args))
     end
 
     def do_exclude_vcall (sexp, args)
 
-      do_exclude_Xcall(:vcall, sexp, args)
+      do_exclude_head(sexp, cons(:vcall, args))
     end
 
     #
@@ -344,21 +370,8 @@ module Rufus
     #
     def do_exclude_fvkcall (sexp, args)
 
-      do_exclude_fcall(sexp, args)
-      do_exclude_vcall(sexp, args)
-      do_exclude_call_on(sexp, parse('Kernel'))
-    end
-
-    def do_exclude_Xcall (call_symbol, sexp, args)
-
-      return unless sexp.is_a?(Array) # lonely symbols are fcalls or vcalls
-
-      excluded_function_name = args[0]
-      head = sexp[0, 2]
-
-      raise SecurityError.new(
-        args[1] || "#{call_symbol} to '#{excluded_function_name}' is forbidden"
-      ) if head == [ call_symbol, excluded_function_name ]
+      do_exclude_fvcall(sexp, args)
+      do_exclude_head(sexp, cons([ :call, [ :const, :Kernel ] ], args))
     end
 
     #
@@ -378,11 +391,7 @@ module Rufus
     #
     def do_exclude_call_on (sexp, args)
 
-      return unless sexp.is_a?(Array) # lonely symbols are not method calls
-
-      raise SecurityError.new(
-        "calls on #{args[0]} are forbidden"
-      ) if sexp[0, 2] == [ :call, args[0] ]
+      do_exclude_head(sexp, [ [:call, args[0]] ] + (args[1, -1] || []))
     end
 
     #
@@ -394,8 +403,19 @@ module Rufus
       return unless sexp.is_a?(Array)
 
       raise SecurityError.new(
-        "calls to '#{args[0]}' are forbidden"
+        args[1] || "calls to '#{args[0]}' are forbidden"
       ) if sexp[0] == :call and sexp[2] == args[0]
+    end
+
+    def do_exclude_head (sexp, args)
+
+      return unless sexp.is_a?(Array)
+
+      head = args[0]
+
+      raise SecurityError.new(
+        args[1] || "#{head.inspect}' is forbidden"
+      ) if sexp[0, head.length] == head
     end
 
     def do_exclude_class_tinkering (sexp, args)

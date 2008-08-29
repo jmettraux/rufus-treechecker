@@ -166,6 +166,7 @@ class BasicTest < Test::Unit::TestCase
     assert_nok(tc, 'raise "error"')
     assert_nok(tc, 'Kernel.raise')
     assert_nok(tc, 'Kernel.raise "error"')
+    assert_ok(tc, 'Kernel.puts "error"')
     assert_nok(tc, 'throw')
     assert_nok(tc, 'throw :halt')
   end
