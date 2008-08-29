@@ -58,13 +58,20 @@ module Rufus
   #
   # == featured exclusion methods
   #
-  # - exclude_method
-  # - exclude_methods
   # - exclude_symbol
-  # - exclude_calls_on
+  # - exclude_fcall
+  # - exclude_vcall
+  # - exclude_call_on
+  # - exclude_call_to
+  # - exclude_def
+  # - exclude_class_tinkering
+  # - exclude_module_tinkering
   #
+  # - exclude_eval
   # - exclude_global_vars
   # - exclude_alias
+  # - exclude_vm_exiting
+  # - exclude_raise
   #
   class TreeChecker
 
@@ -89,23 +96,50 @@ module Rufus
     #
     # the methods used to define the checks
 
-    [ :exclude_method, :exclude_symbol, :exclude_calls_on ].each do |m|
+    [
+      :exclude_symbol,
+      :exclude_fcall,
+      :exclude_vcall,
+      :exclude_call_on,
+      :exclude_call_to
+    ].each do |m|
       class_eval <<-EOS
         def #{m} (*args)
-          args.each { |a| @checks << [ :do_#{m}, a.to_sym ] }
+          message = args.last.is_a?(String) ? args.pop : nil
+          args.each { |a| @checks << [ :do_#{m}, a.to_sym, message ] }
         end
       EOS
-    end
-
-    def exclude_methods (*method_names)
-      method_names.each { |mn| exclude_method mn }
     end
 
     #
     # bans method definitions
     #
-    def exclude_defs
-      @checks << [ :do_exclude_symbol, :defn, "method definitions are forbidden" ]
+    def exclude_def
+      @checks << [
+        :do_exclude_symbol, :defn, "method definitions are forbidden" ]
+    end
+
+    #
+    # bans the defintion and the [re]openening of classes
+    #
+    # a list of exceptions (classes) can be passed. Subclassing those
+    # exceptions is permitted.
+    #
+    def exclude_class_tinkering (*exceptions)
+      @checks << [
+        :do_exclude_class_tinkering ] + exceptions.collect { |e| parse(e.to_s) }
+      @checks << [
+        :do_exclude_symbol, :sclass, "defining or opening a class is forbidden"
+      ]
+    end
+
+    #
+    # bans the definition or the opening of modules
+    #
+    def exclude_module_tinkering
+      @checks << [
+        :do_exclude_symbol, :module, "defining or opening a module is forbidden"
+      ]
     end
 
     #
@@ -121,6 +155,31 @@ module Rufus
     #
     def exclude_alias
       @checks << [ :do_exclude_symbol, :alias, "'alias' is forbidden" ]
+    end
+
+    #
+    # bans the use of 'eval', 'module_eval' and 'instance_eval'
+    #
+    def exclude_eval
+      @checks << [
+        :do_exclude_fcall,
+        :eval,
+        "eval() is forbidden" ]
+      @checks << [
+        :do_exclude_call_to,
+        :instance_eval,
+        "instance_eval() is forbidden" ]
+      @checks << [
+        :do_exclude_call_to,
+        :module_eval,
+        "module_eval() is forbidden" ]
+    end
+
+    #
+    # bans the use of backquotes
+    #
+    def exclude_backquotes
+      @checks << [ :do_exclude_symbol, :xstr, "backquotes are forbidden" ]
     end
 
     #
@@ -143,17 +202,28 @@ module Rufus
     # the methods that actually perform the checks
     # (and potentially raise security exceptions)
 
-    def do_exclude_method (sexp, args)
+    def do_exclude_fcall (sexp, args)
 
-      return unless sexp.is_a?(Array) # lonely symbols are not method calls
+      return unless sexp.is_a?(Array) # lonely symbols are not function calls
 
-      excluded_method_name = args.first
+      excluded_function_name = args.first
       head = sexp[0, 2]
 
       raise SecurityError.new(
-        "call to method '#{excluded_method_name}' is forbidden"
-      ) if (head == [ :vcall, excluded_method_name ] or
-            head == [ :fcall, excluded_method_name ])
+        "fcall to '#{excluded_function_name}' is forbidden"
+      ) if head == [ :fcall, excluded_function_name ]
+    end
+
+    def do_exclude_vcall (sexp, args)
+
+      return unless sexp.is_a?(Array) # lonely symbols are vcalls
+
+      excluded_function_name = args.first
+      head = sexp[0, 2]
+
+      raise SecurityError.new(
+        "vcall to '#{excluded_function_name}' is forbidden"
+      ) if head == [ :vcall, excluded_function_name ]
     end
 
     #
@@ -167,11 +237,25 @@ module Rufus
       ) if sexp == args[0]
     end
 
+    def do_exclude_class_tinkering (sexp, args)
+
+      return unless sexp.is_a?(Array) # lonely symbols are not class definitions
+
+      return unless sexp.first == :class
+
+      raise SecurityError.new(
+        'class definition or opening forbidden'
+      ) if args.length == 0 or ( ! args.include?(sexp[2]))
+        #
+        # raise error if there are no exceptions or
+        # if the parent class is not a member of the exception list
+    end
+
     #
     # raises a security error if the sexp is a call on a given constant or
     # module (class)
     #
-    def do_exclude_calls_on (sexp, args)
+    def do_exclude_call_on (sexp, args)
 
       return unless sexp.is_a?(Array) # lonely symbols are not method calls
 
@@ -179,8 +263,21 @@ module Rufus
       head = sexp[0, 2]
 
       raise SecurityError.new(
-        args[1] || "calls on #{excluded} are forbidden"
+        "calls on #{excluded} are forbidden"
       ) if head == [ :call, [ :const, excluded ] ]
+    end
+
+    #
+    # raises a security error if a call to a given method of any instance
+    # is found
+    #
+    def do_exclude_call_to (sexp, args)
+
+      return unless sexp.is_a?(Array)
+
+      raise SecurityError.new(
+        "call to '#{args[0]}' is forbidden"
+      ) if sexp[0] == :call and sexp[2] == args[0]
     end
 
     #
