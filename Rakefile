@@ -100,7 +100,7 @@ Rake::RDocTask.new do |rd|
     "CREDITS.txt",
     "lib/**/*.rb")
 
-  rd.title = "rufus-verbs rdoc"
+  rd.title = "rufus-treechecker rdoc"
 
   rd.options << '-N' # line numbers
   rd.options << '-S' # inline source

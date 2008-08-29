@@ -61,6 +61,7 @@ module Rufus
   # - exclude_method
   # - exclude_methods
   # - exclude_symbol
+  # - exclude_calls_on
   #
   # - exclude_global_vars
   # - exclude_alias
@@ -84,16 +85,16 @@ module Rufus
     #
     # the methods used to define the checks
 
-    def exclude_method (method_name)
-      @checks << [ :do_exclude_method, method_name.to_sym ]
+    [ :exclude_method, :exclude_symbol, :exclude_calls_on ].each do |m|
+      class_eval <<-EOS
+        def #{m} (*args)
+          args.each { |a| @checks << [ :do_#{m}, a.to_sym ] }
+        end
+      EOS
     end
 
     def exclude_methods (*method_names)
       method_names.each { |mn| exclude_method mn }
-    end
-
-    def exclude_symbol (symbol)
-      @checks << [ :do_exclude_symbol, symbol.to_sym ]
     end
 
     #
@@ -153,6 +154,22 @@ module Rufus
       raise SecurityError.new(
         args[1] || "symbol :#{excluded_symbol} is forbidden"
       ) if sexp == args[0]
+    end
+
+    #
+    # raises a security error if the sexp is a call on a given constant or
+    # module (class)
+    #
+    def do_exclude_calls_on (sexp, args)
+
+      return unless sexp.is_a?(Array) # lonely symbols are not method calls
+
+      excluded = args.first
+      head = sexp[0, 2]
+
+      raise SecurityError.new(
+        args[1] || "calls on #{excluded} are forbidden"
+      ) if head == [ :call, [ :const, excluded ] ]
     end
 
     #

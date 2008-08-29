@@ -30,7 +30,7 @@ or download[http://rubyforge.org/frs/?group_id=4812] it from RubyForge.
     tc.check("1 + 1; abort")               # will raise a SecurityError
     tc.check("puts (1..10).to_a.inspect")  # OK
 
-see more at ...
+see more at http://github.com/jmettraux/rufus-treechecker/tree/master/lib/rufus/treechecker.rb
 
 
 == dependencies

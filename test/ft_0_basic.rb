@@ -63,5 +63,26 @@ class BasicTest < Test::Unit::TestCase
       tc.check('alias :a :b')
     end
   end
+
+  def test_3_exclude_calls_on
+
+    tc = Rufus::TreeChecker.new do
+      exclude_calls_on :File, :FileUtils
+      exclude_calls_on :IO
+    end
+
+    assert_raise Rufus::SecurityError do
+      tc.check('data = File.read("surf.txt")')
+    end
+    assert_raise Rufus::SecurityError do
+      tc.check('f = File.new("surf.txt")')
+    end
+    assert_raise Rufus::SecurityError do
+      tc.check('FileUtils.rm_f("bondzoi.txt")')
+    end
+    assert_raise Rufus::SecurityError do
+      tc.check('IO.foreach("testfile") {|x| print "GOT ", x }')
+    end
+  end
 end
 
