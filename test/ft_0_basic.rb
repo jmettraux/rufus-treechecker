@@ -14,6 +14,13 @@ require 'rubygems'
 require 'rufus/treechecker'
 
 
+class Rufus::TreeChecker
+  def sexp (rubycode)
+    puts
+    p parse(rubycode)
+  end
+end
+
 
 class BasicTest < Test::Unit::TestCase
 
@@ -83,6 +90,30 @@ class BasicTest < Test::Unit::TestCase
     assert_raise Rufus::SecurityError do
       tc.check('IO.foreach("testfile") {|x| print "GOT ", x }')
     end
+  end
+
+  def test_4_exclude_defs
+
+    tc = Rufus::TreeChecker.new do
+      exclude_defs
+    end
+
+    assert_raise Rufus::SecurityError do
+      tc.check('def drink; "water"; end')
+    end
+  end
+
+  def test_X
+
+    tc = Rufus::TreeChecker.new do
+    end
+    #tc.sexp 'OpenWFE::Extras::ProcessDefinition'
+    #tc.sexp "class Toto < OpenWFE::ProcessDefinition\nend"
+    #tc.sexp "class String\nend"
+    #tc.sexp "module Whatever\nend"
+    #tc.sexp "class << e\nend"
+    #tc.sexp "def cry\nend"
+    #tc.sexp "def cry; end"
   end
 end
 

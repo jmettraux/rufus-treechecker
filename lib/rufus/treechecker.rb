@@ -71,7 +71,11 @@ module Rufus
     VERSION = '1.0'
 
     def initialize (&block)
+
+      raise "new() expects a block with some exclusion rules" unless block
+
       @checks = []
+
       instance_eval(&block)
     end
 
@@ -95,6 +99,13 @@ module Rufus
 
     def exclude_methods (*method_names)
       method_names.each { |mn| exclude_method mn }
+    end
+
+    #
+    # bans method definitions
+    #
+    def exclude_defs
+      @checks << [ :do_exclude_symbol, :defn, "method definitions are forbidden" ]
     end
 
     #
