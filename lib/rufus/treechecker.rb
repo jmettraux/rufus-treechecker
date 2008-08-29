@@ -67,6 +67,8 @@ module Rufus
   #
   class TreeChecker
 
+    VERSION = '1.0'
+
     def initialize (&block)
       @checks = []
       instance_eval(&block)

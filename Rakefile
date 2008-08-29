@@ -91,7 +91,7 @@ Rake::RDocTask.new do |rd|
 
   rd.main = "README.txt"
 
-  rd.rdoc_dir = "html/rufus-verbs"
+  rd.rdoc_dir = "html/rufus-treechecker"
 
   rd.rdoc_files.include(
     "README.txt",

@@ -1,0 +1,8 @@
+
+= rufus-treechecker CHANGELOG.txt
+
+
+== rufus-treechecker - 1.0   not yet released
+
+- initial release
+
