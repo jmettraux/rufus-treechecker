@@ -23,8 +23,8 @@ or download[http://rubyforge.org/frs/?group_id=4812] it from RubyForge.
     require 'rufus-treechecker'
 
     tc = Rufus::TreeChecker.new do
-      exclude_method :abort
-      exclude_methods :exit, :exit!
+      exclude_fvcall :abort
+      exclude_fvcall :exit, :exit!
     end
     
     tc.check("1 + 1; abort")               # will raise a SecurityError

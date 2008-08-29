@@ -49,59 +49,131 @@ module Rufus
   # bad things from happening in this code.
   #
   #   tc = Rufus::TreeChecker.new do
-  #     exclude_method :abort
-  #     exclude_methods :exit, :exit!
+  #     exclude_fvcall :abort
+  #     exclude_fvcall :exit, :exit!
   #   end
   #
   #   tc.check("1 + 1; abort")               # will raise a SecurityError
   #   tc.check("puts (1..10).to_a.inspect")  # OK
   #
+  #
   # == featured exclusion methods
+  #
+  # === call / vcall / fcall ?
+  #
+  # What the difference between those ? Well, here is how those various piece
+  # of code look like :
+  #
+  #   "exit"          => [:vcall, :exit]
+  #   "Kernel.exit"   => [:call, [:const, :Kernel], :exit]
+  #   "Kernel::exit"  => [:call, [:const, :Kernel], :exit]
+  #   "k.exit"        => [:call, [:vcall, :k], :exit]
+  #   "exit -1"       => [:fcall, :exit, [:array, [:lit, -1]]]
+  #
+  # Obviously :fcall could be labelled as "function call", :call is a call
+  # on to some instance, while vcall might either be a variable dereference
+  # or a function call with no arguments.
+  #
+  # === low-level rules
   #
   # - exclude_symbol
   # - exclude_fcall
   # - exclude_vcall
+  # - exclude_fvcall
   # - exclude_call_on
   # - exclude_call_to
   # - exclude_def
   # - exclude_class_tinkering
   # - exclude_module_tinkering
   #
-  # - exclude_eval
-  # - exclude_global_vars
-  # - exclude_alias
-  # - exclude_vm_exiting
-  # - exclude_raise
+  # === higher level rules
+  #
+  # Those rules take no arguments
+  #
+  # - exclude_eval : bans eval, module_eval and instance_eval
+  # - exclude_global_vars : bans calling or modifying global vars
+  # - exclude_alias : bans calls to 'alias'
+  # - exclude_vm_exiting : bans exit, abort, ...
+  # - exclude_raise : bans calls to raise or throw
+  #
+  #
+  # == a bit further
+  #
+  # It's possible to clone a TreeChecker and to add some more rules to it :
+  #
+  #   tc0 = Rufus::TreeChecker.new do
+  #     #
+  #     # calls to eval, module_eval and instance_eval are not allowed
+  #     #
+  #     exclude_eval
+  #   end
+  #
+  #   tc1 = tc0.clone
+  #   tc1.add_checks do
+  #     #
+  #     # calls to any method on File and FileUtils classes are not allowed
+  #     #
+  #     exclude_call_on File, FileUtils
+  #   end
   #
   class TreeChecker
 
     VERSION = '1.0'
 
+    #
+    # initializes the TreeChecker, expects a block
+    #
     def initialize (&block)
-
-      raise "new() expects a block with some exclusion rules" unless block
 
       @checks = []
 
-      instance_eval(&block)
+      add_checks(&block)
     end
 
+    #
+    # Performs the check on the given String of ruby code. Will raise a
+    # Rufus::SecurityError if there is something excluded by the rules
+    # specified at the initialization of the TreeChecker instance.
+    #
     def check (rubycode)
 
       do_check(parse(rubycode))
     end
 
-    protected
+    #
+    # return a copy of this TreeChecker instance
+    #
+    def clone
+
+      copy = TreeChecker.new
+      copy.instance_variable_set(:@checks, @checks.dup)
+      copy
+    end
 
     #
+    # adds a set of checks (rules) to this treechecker. Returns self.
+    #
+    def add_checks (&block)
+
+      instance_eval(&block) if block
+
+      self
+    end
+
+    protected
+
+    #--
     # the methods used to define the checks
+    #++
 
     [
       :exclude_symbol,
       :exclude_fcall,
       :exclude_vcall,
+      :exclude_fvcall,
       :exclude_call_on,
       :exclude_call_to
+
     ].each do |m|
       class_eval <<-EOS
         def #{m} (*args)
@@ -115,6 +187,7 @@ module Rufus
     # bans method definitions
     #
     def exclude_def
+
       @checks << [
         :do_exclude_symbol, :defn, "method definitions are forbidden" ]
     end
@@ -126,6 +199,7 @@ module Rufus
     # exceptions is permitted.
     #
     def exclude_class_tinkering (*exceptions)
+
       @checks << [
         :do_exclude_class_tinkering ] + exceptions.collect { |e| parse(e.to_s) }
       @checks << [
@@ -137,6 +211,7 @@ module Rufus
     # bans the definition or the opening of modules
     #
     def exclude_module_tinkering
+
       @checks << [
         :do_exclude_symbol, :module, "defining or opening a module is forbidden"
       ]
@@ -146,6 +221,7 @@ module Rufus
     # bans referencing or setting the value of global variables
     #
     def exclude_global_vars
+
       @checks << [ :do_exclude_symbol, :gvar, "global vars are forbidden" ]
       @checks << [ :do_exclude_symbol, :gasgn, "global vars are forbidden" ]
     end
@@ -154,6 +230,7 @@ module Rufus
     # bans the usage of 'alias'
     #
     def exclude_alias
+
       @checks << [ :do_exclude_symbol, :alias, "'alias' is forbidden" ]
     end
 
@@ -161,6 +238,7 @@ module Rufus
     # bans the use of 'eval', 'module_eval' and 'instance_eval'
     #
     def exclude_eval
+
       @checks << [
         :do_exclude_fcall,
         :eval,
@@ -180,6 +258,17 @@ module Rufus
     #
     def exclude_backquotes
       @checks << [ :do_exclude_symbol, :xstr, "backquotes are forbidden" ]
+    end
+
+    #
+    # bans raise and throw
+    #
+    def exclude_raise
+
+      @checks << [ :do_exclude_fvcall, :raise, "raise is forbidden" ]
+      @checks << [ :do_exclude_call_to, :raise, "raise is forbidden" ]
+      @checks << [ :do_exclude_fvcall, :throw, "throw is forbidden" ]
+      @checks << [ :do_exclude_call_to, :throw, "throw is forbidden" ]
     end
 
     #
@@ -204,26 +293,33 @@ module Rufus
 
     def do_exclude_fcall (sexp, args)
 
-      return unless sexp.is_a?(Array) # lonely symbols are not function calls
-
-      excluded_function_name = args.first
-      head = sexp[0, 2]
-
-      raise SecurityError.new(
-        "fcall to '#{excluded_function_name}' is forbidden"
-      ) if head == [ :fcall, excluded_function_name ]
+      do_exclude_Xcall(:fcall, sexp, args)
     end
 
     def do_exclude_vcall (sexp, args)
 
-      return unless sexp.is_a?(Array) # lonely symbols are vcalls
+      do_exclude_Xcall(:vcall, sexp, args)
+    end
 
-      excluded_function_name = args.first
+    #
+    # excludes :fcall and :vcall
+    #
+    def do_exclude_fvcall (sexp, args)
+
+      do_exclude_fcall(sexp, args)
+      do_exclude_vcall(sexp, args)
+    end
+
+    def do_exclude_Xcall (call_symbol, sexp, args)
+
+      return unless sexp.is_a?(Array) # lonely symbols are fcalls or vcalls
+
+      excluded_function_name = args[0]
       head = sexp[0, 2]
 
       raise SecurityError.new(
-        "vcall to '#{excluded_function_name}' is forbidden"
-      ) if head == [ :vcall, excluded_function_name ]
+        args[1] || "#{call_symbol} to '#{excluded_function_name}' is forbidden"
+      ) if head == [ call_symbol, excluded_function_name ]
     end
 
     #
@@ -237,20 +333,6 @@ module Rufus
       ) if sexp == args[0]
     end
 
-    def do_exclude_class_tinkering (sexp, args)
-
-      return unless sexp.is_a?(Array) # lonely symbols are not class definitions
-
-      return unless sexp.first == :class
-
-      raise SecurityError.new(
-        'class definition or opening forbidden'
-      ) if args.length == 0 or ( ! args.include?(sexp[2]))
-        #
-        # raise error if there are no exceptions or
-        # if the parent class is not a member of the exception list
-    end
-
     #
     # raises a security error if the sexp is a call on a given constant or
     # module (class)
@@ -259,12 +341,9 @@ module Rufus
 
       return unless sexp.is_a?(Array) # lonely symbols are not method calls
 
-      excluded = args.first
-      head = sexp[0, 2]
-
       raise SecurityError.new(
-        "calls on #{excluded} are forbidden"
-      ) if head == [ :call, [ :const, excluded ] ]
+        "calls on #{args[0]} are forbidden"
+      ) if sexp[0, 2] == [ :call, [ :const, args[0] ] ]
     end
 
     #
@@ -276,8 +355,22 @@ module Rufus
       return unless sexp.is_a?(Array)
 
       raise SecurityError.new(
-        "call to '#{args[0]}' is forbidden"
+        "calls to '#{args[0]}' are forbidden"
       ) if sexp[0] == :call and sexp[2] == args[0]
+    end
+
+    def do_exclude_class_tinkering (sexp, args)
+
+      return unless sexp.is_a?(Array) # lonely symbols are not class definitions
+
+      return unless sexp[0] == :class
+
+      raise SecurityError.new(
+        'class definition or opening forbidden'
+      ) if args.length == 0 or ( ! args.include?(sexp[2]))
+        #
+        # raise error if there are no exceptions or
+        # if the parent class is not a member of the exception list
     end
 
     #

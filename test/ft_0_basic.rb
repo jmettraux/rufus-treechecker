@@ -30,8 +30,7 @@ class BasicTest < Test::Unit::TestCase
     tc = Rufus::TreeChecker.new do
       exclude_vcall :abort
       exclude_fcall :abort
-      exclude_vcall :exit, :exit!
-      exclude_fcall :exit, :exit!
+      exclude_fvcall :exit, :exit!
       exclude_call_to :exit
     end
 
@@ -44,6 +43,7 @@ class BasicTest < Test::Unit::TestCase
     assert_nok(tc, 'Kernel.exit()')
     assert_nok(tc, 'Kernel::exit')
     assert_nok(tc, 'Kernel::exit()')
+    assert_nok(tc, '::Kernel.exit')
 
     assert_ok(tc, '1 + 1')
   end
@@ -152,6 +152,20 @@ class BasicTest < Test::Unit::TestCase
     assert_nok(tc, '`kill -9 whatever`')
   end
 
+  def test_9_exclude_raise_and_throw
+
+    tc = Rufus::TreeChecker.new do
+      exclude_raise
+    end
+
+    assert_nok(tc, 'raise')
+    assert_nok(tc, 'raise "error"')
+    assert_nok(tc, 'Kernel.raise')
+    assert_nok(tc, 'Kernel.raise "error"')
+    assert_nok(tc, 'throw')
+    assert_nok(tc, 'throw :halt')
+  end
+
   #class Rufus::TreeChecker
   #  def sexp (rubycode)
   #    puts
@@ -163,6 +177,14 @@ class BasicTest < Test::Unit::TestCase
   #  tc = Rufus::TreeChecker.new do
   #  end
   #  tc.sexp 'raise "error!"'
+  #  tc.sexp 'raise'
+  #  tc.sexp 'throw :halt'
+  #  tc.sexp 'throw'
+  #  tc.sexp 'exit'
+  #  tc.sexp 'Kernel.exit'
+  #  tc.sexp 'Kernel::exit'
+  #  tc.sexp 'k.exit'
+  #  tc.sexp 'exit -1'
   #end
 end
 
