@@ -80,6 +80,7 @@ module Rufus
   # - exclude_fcall
   # - exclude_vcall
   # - exclude_fvcall
+  # - exclude_fvkcall
   # - exclude_call_on
   # - exclude_call_to
   # - exclude_def
@@ -92,7 +93,7 @@ module Rufus
   #
   # - exclude_eval : bans eval, module_eval and instance_eval
   # - exclude_global_vars : bans calling or modifying global vars
-  # - exclude_alias : bans calls to 'alias'
+  # - exclude_alias : bans calls to alias and alias_method
   # - exclude_vm_exiting : bans exit, abort, ...
   # - exclude_raise : bans calls to raise or throw
   #
@@ -160,6 +161,24 @@ module Rufus
       self
     end
 
+    #
+    # generates a 'classic' tree checker
+    #
+    # Here is how it's built :
+    #
+    #    return TreeChecker.new do
+    #      exclude_eval
+    #      # TODO : continue me
+    #    end
+    #
+    def self.new_classic_tree_checker
+
+      return TreeChecker.new do
+        exclude_eval
+        # TODO : continue me
+      end
+    end
+
     protected
 
     #--
@@ -171,14 +190,23 @@ module Rufus
       :exclude_fcall,
       :exclude_vcall,
       :exclude_fvcall,
+      :exclude_fvkcall,
       :exclude_call_on,
       :exclude_call_to
 
     ].each do |m|
       class_eval <<-EOS
         def #{m} (*args)
+
           message = args.last.is_a?(String) ? args.pop : nil
-          args.each { |a| @checks << [ :do_#{m}, a.to_sym, message ] }
+
+          args.each do |a| 
+
+            a = [ Class, Module ].include?(a.class) ? \
+              parse(a.to_s) : a.to_sym
+
+            @checks << [ :do_#{m}, a, message ]
+          end
         end
       EOS
     end
@@ -231,7 +259,10 @@ module Rufus
     #
     def exclude_alias
 
-      @checks << [ :do_exclude_symbol, :alias, "'alias' is forbidden" ]
+      @checks << [
+        :do_exclude_symbol, :alias, "'alias' is forbidden" ]
+      @checks << [
+        :do_exclude_symbol, :alias_method, "'alias_method' is forbidden" ]
     end
 
     #
@@ -265,10 +296,8 @@ module Rufus
     #
     def exclude_raise
 
-      @checks << [ :do_exclude_fvcall, :raise, "raise is forbidden" ]
-      @checks << [ :do_exclude_call_to, :raise, "raise is forbidden" ]
-      @checks << [ :do_exclude_fvcall, :throw, "throw is forbidden" ]
-      @checks << [ :do_exclude_call_to, :throw, "throw is forbidden" ]
+      @checks << [ :do_exclude_fvkcall, :raise, "raise is forbidden" ]
+      @checks << [ :do_exclude_fvkcall, :throw, "throw is forbidden" ]
     end
 
     #
@@ -310,6 +339,16 @@ module Rufus
       do_exclude_vcall(sexp, args)
     end
 
+    #
+    # excludes :fcall and :vcall and :call on Kernel
+    #
+    def do_exclude_fvkcall (sexp, args)
+
+      do_exclude_fcall(sexp, args)
+      do_exclude_vcall(sexp, args)
+      do_exclude_call_on(sexp, parse('Kernel'))
+    end
+
     def do_exclude_Xcall (call_symbol, sexp, args)
 
       return unless sexp.is_a?(Array) # lonely symbols are fcalls or vcalls
@@ -343,7 +382,7 @@ module Rufus
 
       raise SecurityError.new(
         "calls on #{args[0]} are forbidden"
-      ) if sexp[0, 2] == [ :call, [ :const, args[0] ] ]
+      ) if sexp[0, 2] == [ :call, args[0] ]
     end
 
     #

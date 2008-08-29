@@ -7,23 +7,12 @@
 # Fri Aug 29 10:13:33 JST 2008
 #
 
-require 'test/unit'
-
-require 'rubygems'
-
-require 'rufus/treechecker'
+require 'testmixin'
 
 
 class BasicTest < Test::Unit::TestCase
+  include TestMixin
 
-  def assert_ok (tc, rubycode)
-    tc.check(rubycode)
-  end
-  def assert_nok (tc, rubycode)
-    assert_raise Rufus::SecurityError do
-      tc.check(rubycode)
-    end
-  end
 
   def test_0
 
@@ -76,8 +65,8 @@ class BasicTest < Test::Unit::TestCase
   def test_3_exclude_calls_on
 
     tc = Rufus::TreeChecker.new do
-      exclude_call_on :File, :FileUtils
-      exclude_call_on :IO
+      exclude_call_on File, FileUtils
+      exclude_call_on IO
     end
 
     assert_nok(tc, 'data = File.read("surf.txt")')
@@ -111,6 +100,21 @@ class BasicTest < Test::Unit::TestCase
 
     tc = Rufus::TreeChecker.new do
       exclude_class_tinkering String, Rufus::TreeChecker
+    end
+
+    assert_nok(tc, 'class String; def length; 3; end; end')
+
+    assert_ok(tc, 'class S2 < String; def length; 3; end; end')
+    assert_ok(tc, 'class Toto < Rufus::TreeChecker; def length; 3; end; end')
+
+    assert_nok(tc, 'class Toto; end')
+    assert_nok(tc, 'class Alpha::Toto; end')
+  end
+
+  def test_5c_exclude_class_tinkering_with_exceptions
+
+    tc = Rufus::TreeChecker.new do
+      exclude_class_tinkering 'String', 'Rufus::TreeChecker'
     end
 
     assert_nok(tc, 'class String; def length; 3; end; end')
