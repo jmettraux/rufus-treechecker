@@ -23,6 +23,7 @@ spec = Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.summary = "checking ruby code before eval()"
   #s.license = "MIT"
+  s.rubyforge_project = "rufus"
 
   s.require_path = "lib"
   #s.autorequire = "rufus-whatever"
@@ -30,7 +31,7 @@ spec = Gem::Specification.new do |s|
   s.has_rdoc = true
   s.extra_rdoc_files = [ 'README.txt' ]
 
-  [ 'rogue-parser' ].each do |d|
+  [ 'rogue_parser' ].each do |d|
     s.requirements << d
     s.add_dependency d
   end
