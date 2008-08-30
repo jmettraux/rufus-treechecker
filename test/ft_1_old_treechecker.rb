@@ -55,6 +55,8 @@ class OldTreeCheckerTest < Test::Unit::TestCase
     assert_nok tc, "M.module_eval 'nada'"
     assert_nok tc, "o.instance_eval 'nada'"
 
+    assert_ok tc, "puts 'toto'"
+
     assert_ok tc, "class Toto < Testy::Tasty\nend"
     assert_nok tc, "class String\nend"
     assert_nok tc, "module Whatever\nend"
