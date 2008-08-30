@@ -30,6 +30,12 @@ class OldTreeCheckerTest < Test::Unit::TestCase
       exclude_call_on File, FileUtils
       exclude_class_tinkering Testy::Tasty
       exclude_module_tinkering
+
+      exclude_fvcall :public
+      exclude_fvcall :protected
+      exclude_fvcall :private
+      exclude_fcall :load
+      exclude_fcall :require
     end
 
     assert_nocompile tc, "def surf }"

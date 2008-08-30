@@ -86,6 +86,7 @@ module Rufus
   # - exclude_def
   # - exclude_class_tinkering
   # - exclude_module_tinkering
+  # - is_not
   #
   # === higher level rules
   #
@@ -110,7 +111,7 @@ module Rufus
   #   end
   #
   #   tc1 = tc0.clone
-  #   tc1.add_checks do
+  #   tc1.add_rules do
   #     #
   #     # calls to any method on File and FileUtils classes are not allowed
   #     #
@@ -126,9 +127,10 @@ module Rufus
     #
     def initialize (&block)
 
+      @topchecks = []
       @checks = []
 
-      add_checks(&block)
+      add_rules(&block)
     end
 
     #
@@ -138,7 +140,13 @@ module Rufus
     #
     def check (rubycode)
 
-      do_check(parse(rubycode))
+      sexp = parse(rubycode)
+
+      @topchecks.each do |meth, *args|
+        send meth, sexp, args
+      end
+
+      do_check(sexp)
     end
 
     #
@@ -154,7 +162,7 @@ module Rufus
     #
     # adds a set of checks (rules) to this treechecker. Returns self.
     #
-    def add_checks (&block)
+    def add_rules (&block)
 
       instance_eval(&block) if block
 
@@ -198,6 +206,15 @@ module Rufus
     #--
     # the methods used to define the checks
     #++
+
+    #
+    # setting an is_not rule only operates at the top level of a sexp
+    # (hence it's stored in @topchecks)
+    #
+    def is_not (sym, message=nil)
+
+      @topchecks << [ :do_is_not, sym.to_sym, message ]
+    end
 
     [
       :exclude_symbol,
@@ -416,6 +433,20 @@ module Rufus
       raise SecurityError.new(
         args[1] || "#{head.inspect}' is forbidden"
       ) if sexp[0, head.length] == head
+    end
+
+    #
+    # used in top level checks only
+    # (used in ruote's check_conditional method to ensure that a piece
+    # of code has 1! statement and is not a assignment)
+    #
+    def do_is_not (sexp, args)
+
+      return unless sexp.is_a?(Array)
+
+      raise SecurityError.new(
+        args[1] || "the code may not begin with a :#{args[0]}"
+      ) if sexp.first == args[0]
     end
 
     def do_exclude_class_tinkering (sexp, args)

@@ -171,6 +171,32 @@ class BasicTest < Test::Unit::TestCase
     assert_nok(tc, 'throw :halt')
   end
 
+  def test_10_exclude_public
+
+    tc = Rufus::TreeChecker.new do
+      exclude_fvcall :public
+      exclude_fvcall :protected
+      exclude_fvcall :private
+    end
+
+    assert_nok(tc, 'public')
+    assert_nok(tc, 'public :surf')
+    assert_nok(tc, 'class Toto; public :car; end')
+    assert_nok(tc, 'private')
+    assert_nok(tc, 'private :surf')
+    assert_nok(tc, 'class Toto; private :car; end')
+  end
+
+  def test_11_is_not
+
+    tc = Rufus::TreeChecker.new do
+      is_not :block
+      is_not :lasgn
+    end
+
+    assert_nok(tc, 'a; b; c')
+  end
+
   #class Rufus::TreeChecker
   #  def sexp (rubycode)
   #    puts
@@ -181,15 +207,9 @@ class BasicTest < Test::Unit::TestCase
   #def test_X
   #  tc = Rufus::TreeChecker.new do
   #  end
-  #  tc.sexp 'raise "error!"'
-  #  tc.sexp 'raise'
-  #  tc.sexp 'throw :halt'
-  #  tc.sexp 'throw'
-  #  tc.sexp 'exit'
-  #  tc.sexp 'Kernel.exit'
-  #  tc.sexp 'Kernel::exit'
-  #  tc.sexp 'k.exit'
-  #  tc.sexp 'exit -1'
+  #  tc.sexp 'load "surf"'
+  #  tc.sexp 'class Toto; load "nada"; end'
+  #  tc.sexp 'class Toto; def m; load "nada"; end; end'
   #end
 end
 
