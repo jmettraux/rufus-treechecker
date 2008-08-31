@@ -202,10 +202,10 @@ class BasicTest < Test::Unit::TestCase
     assert_nok(tc, 'lambda { a = 2 }')
   end
 
-  def test_12_top
+  def test_12_at_root
 
     tc = Rufus::TreeChecker.new do
-      top do
+      at_root do
         exclude_head [ :block ]
         exclude_head [ :lasgn ]
       end

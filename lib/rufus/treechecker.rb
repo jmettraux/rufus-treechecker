@@ -89,7 +89,7 @@ module Rufus
   # - exclude_class_tinkering
   # - exclude_module_tinkering
   #
-  # - top
+  # - at_root
   #
   # === higher level rules
   #
@@ -140,7 +140,7 @@ module Rufus
     #
     def initialize (&block)
 
-      @top_checks = []
+      @root_checks = []
       @checks = []
 
       @current_checks = @checks
@@ -157,7 +157,7 @@ module Rufus
 
       sexp = parse(rubycode)
 
-      @top_checks.each do |meth, *args|
+      @root_checks.each do |meth, *args|
         send meth, sexp, args
       end
 
@@ -189,8 +189,8 @@ module Rufus
     #
     def freeze
       super
-      @top_checks.freeze
-      @top_checks.each { |c| c.freeze }
+      @root_checks.freeze
+      @root_checks.each { |c| c.freeze }
       @checks.freeze
       @checks.each { |c| c.freeze }
     end
@@ -234,12 +234,12 @@ module Rufus
     #++
 
     #
-    # within the 'top' block, rules are added to the @top_checks, ie
+    # within the 'at_root' block, rules are added to the @root_checks, ie
     # they are evaluated only for the toplevel (root) sexp.
     #
-    def top (&block)
+    def at_root (&block)
 
-      @current_checks = @top_checks
+      @current_checks = @root_checks
       add_rules(&block)
       @current_checks = @checks
     end
