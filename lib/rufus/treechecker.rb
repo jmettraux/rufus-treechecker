@@ -76,7 +76,8 @@ module Rufus
   #
   # === low-level rules
   #
-  # - exclude_symbol
+  # - exclude_symbol : bans the usage of a given symbol (very low-level,
+  #                    mostly used by other rules
   # - exclude_fcall
   # - exclude_vcall
   # - exclude_fvcall
