@@ -218,6 +218,12 @@ class BasicTest < Test::Unit::TestCase
     assert_ok(tc, 'lambda { a = 2 }')
   end
 
+  def test_12_freeze
+
+    # TODO : are there some rules with composite values ?
+    #        can't remember of any :(
+  end
+
   #def test_X
   #  tc = Rufus::TreeChecker.new do
   #  end

@@ -185,6 +185,17 @@ module Rufus
     end
 
     #
+    # freezes the treechecker instance "in depth"
+    #
+    def freeze
+      super
+      @top_checks.freeze
+      @top_checks.each { |c| c.freeze }
+      @checks.freeze
+      @checks.each { |c| c.freeze }
+    end
+
+    #
     # generates a 'classic' tree checker
     #
     # Here is how it's built :
