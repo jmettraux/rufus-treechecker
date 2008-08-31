@@ -78,6 +78,7 @@ module Rufus
   #
   # - exclude_symbol : bans the usage of a given symbol (very low-level,
   #                    mostly used by other rules
+  # - exclude_head
   # - exclude_fcall
   # - exclude_vcall
   # - exclude_fvcall
@@ -87,7 +88,8 @@ module Rufus
   # - exclude_def
   # - exclude_class_tinkering
   # - exclude_module_tinkering
-  # - is_not
+  #
+  # - top
   #
   # === higher level rules
   #
@@ -124,12 +126,24 @@ module Rufus
     VERSION = '1.0'
 
     #
+    # pretty-prints the sexp tree of the given rubycode
+    #
+    def ptree (rubycode)
+      puts
+      puts rubycode.inspect
+      puts " => "
+      puts parse(rubycode).inspect
+    end
+
+    #
     # initializes the TreeChecker, expects a block
     #
     def initialize (&block)
 
-      @topchecks = []
+      @top_checks = []
       @checks = []
+
+      @current_checks = @checks
 
       add_rules(&block)
     end
@@ -143,7 +157,7 @@ module Rufus
 
       sexp = parse(rubycode)
 
-      @topchecks.each do |meth, *args|
+      @top_checks.each do |meth, *args|
         send meth, sexp, args
       end
 
@@ -209,12 +223,29 @@ module Rufus
     #++
 
     #
-    # setting an is_not rule only operates at the top level of a sexp
-    # (hence it's stored in @topchecks)
+    # within the 'top' block, rules are added to the @top_checks, ie
+    # they are evaluated only for the toplevel (root) sexp.
     #
-    def is_not (sym, message=nil)
+    def top (&block)
 
-      @topchecks << [ :do_is_not, sym.to_sym, message ]
+      @current_checks = @top_checks
+      add_rules(&block)
+      @current_checks = @checks
+    end
+
+    #
+    # adds a rule that will forbid sexps that begin with the given head
+    #
+    #     tc = TreeChecker.new do
+    #       exclude_head [ :block ]
+    #     end
+    #
+    #     tc.check('a = 2')         # ok
+    #     tc.check('a = 2; b = 5')  # will raise an error as it's a block
+    #
+    def exclude_head (head, message=nil)
+
+      @current_checks << [ :do_exclude_head, head, message ]
     end
 
     [
@@ -237,7 +268,7 @@ module Rufus
             a = [ Class, Module ].include?(a.class) ? \
               parse(a.to_s) : a.to_sym
 
-            @checks << [ :do_#{m}, a, message ]
+            @current_checks << [ :do_#{m}, a, message ]
           end
         end
       EOS
@@ -248,7 +279,7 @@ module Rufus
     #
     def exclude_def
 
-      @checks << [
+      @current_checks << [
         :do_exclude_symbol, :defn, "method definitions are forbidden" ]
     end
 
@@ -260,9 +291,9 @@ module Rufus
     #
     def exclude_class_tinkering (*exceptions)
 
-      @checks << [
+      @current_checks << [
         :do_exclude_class_tinkering ] + exceptions.collect { |e| parse(e.to_s) }
-      @checks << [
+      @current_checks << [
         :do_exclude_symbol, :sclass, "defining or opening a class is forbidden"
       ]
     end
@@ -272,7 +303,7 @@ module Rufus
     #
     def exclude_module_tinkering
 
-      @checks << [
+      @current_checks << [
         :do_exclude_symbol, :module, "defining or opening a module is forbidden"
       ]
     end
@@ -282,8 +313,10 @@ module Rufus
     #
     def exclude_global_vars
 
-      @checks << [ :do_exclude_symbol, :gvar, "global vars are forbidden" ]
-      @checks << [ :do_exclude_symbol, :gasgn, "global vars are forbidden" ]
+      @current_checks << [
+        :do_exclude_symbol, :gvar, "global vars are forbidden" ]
+      @current_checks << [
+        :do_exclude_symbol, :gasgn, "global vars are forbidden" ]
     end
 
     #
@@ -291,9 +324,9 @@ module Rufus
     #
     def exclude_alias
 
-      @checks << [
+      @current_checks << [
         :do_exclude_symbol, :alias, "'alias' is forbidden" ]
-      @checks << [
+      @current_checks << [
         :do_exclude_symbol, :alias_method, "'alias_method' is forbidden" ]
     end
 
@@ -302,15 +335,15 @@ module Rufus
     #
     def exclude_eval
 
-      @checks << [
+      @current_checks << [
         :do_exclude_fcall,
         :eval,
         "eval() is forbidden" ]
-      @checks << [
+      @current_checks << [
         :do_exclude_call_to,
         :instance_eval,
         "instance_eval() is forbidden" ]
-      @checks << [
+      @current_checks << [
         :do_exclude_call_to,
         :module_eval,
         "module_eval() is forbidden" ]
@@ -320,7 +353,8 @@ module Rufus
     # bans the use of backquotes
     #
     def exclude_backquotes
-      @checks << [ :do_exclude_symbol, :xstr, "backquotes are forbidden" ]
+      @current_checks << [
+        :do_exclude_symbol, :xstr, "backquotes are forbidden" ]
     end
 
     #
@@ -328,8 +362,8 @@ module Rufus
     #
     def exclude_raise
 
-      @checks << [ :do_exclude_fvkcall, :raise, "raise is forbidden" ]
-      @checks << [ :do_exclude_fvkcall, :throw, "throw is forbidden" ]
+      @current_checks << [ :do_exclude_fvkcall, :raise, "raise is forbidden" ]
+      @current_checks << [ :do_exclude_fvkcall, :throw, "throw is forbidden" ]
     end
 
     #
@@ -434,20 +468,6 @@ module Rufus
       raise SecurityError.new(
         args[1] || "#{head.inspect}' is forbidden"
       ) if sexp[0, head.length] == head
-    end
-
-    #
-    # used in top level checks only
-    # (used in ruote's check_conditional method to ensure that a piece
-    # of code has 1! statement and is not a assignment)
-    #
-    def do_is_not (sexp, args)
-
-      return unless sexp.is_a?(Array)
-
-      raise SecurityError.new(
-        args[1] || "the code may not begin with a :#{args[0]}"
-      ) if sexp.first == args[0]
     end
 
     def do_exclude_class_tinkering (sexp, args)

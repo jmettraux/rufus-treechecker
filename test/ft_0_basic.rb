@@ -190,26 +190,45 @@ class BasicTest < Test::Unit::TestCase
   def test_11_is_not
 
     tc = Rufus::TreeChecker.new do
-      is_not :block
-      is_not :lasgn
+      exclude_head [ :block ]
+      exclude_head [ :lasgn ]
+      exclude_head [ :dasgn_curr ]
     end
 
     assert_nok(tc, 'a; b; c')
+    assert_nok(tc, 'lambda { a; b; c }')
+
+    assert_nok(tc, 'a = 2')
+    assert_nok(tc, 'lambda { a = 2 }')
   end
 
-  #class Rufus::TreeChecker
-  #  def sexp (rubycode)
-  #    puts
-  #    puts "\"#{rubycode}\" =>"
-  #    p parse(rubycode)
-  #  end
-  #end
+  def test_12_top
+
+    tc = Rufus::TreeChecker.new do
+      top do
+        exclude_head [ :block ]
+        exclude_head [ :lasgn ]
+      end
+    end
+
+    assert_nok(tc, 'a; b; c')
+    assert_ok(tc, 'lambda { a; b; c }')
+
+    assert_nok(tc, 'a = 2')
+    assert_ok(tc, 'lambda { a = 2 }')
+  end
+
   #def test_X
   #  tc = Rufus::TreeChecker.new do
   #  end
-  #  tc.sexp 'load "surf"'
-  #  tc.sexp 'class Toto; load "nada"; end'
-  #  tc.sexp 'class Toto; def m; load "nada"; end; end'
+  #  #tc.ptree 'load "surf"'
+  #  #tc.ptree 'class Toto; load "nada"; end'
+  #  #tc.ptree 'class Toto; def m; load "nada"; end; end'
+  #  #tc.ptree 'lambda { a; b; c }'
+  #  tc.ptree 'lambda { a = c }'
+  #  tc.ptree 'c = 0; a = c'
+  #  tc.ptree 'c = a = 0'
+  #  tc.ptree 'a = 5 + 6; puts a'
   #end
 end
 

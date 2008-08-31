@@ -6,10 +6,6 @@
 Initialize a Rufus::TreeChecker and pass some ruby code to make sure it's safe before calling eval().
 
 
-== features
-
-.
-
 == getting it
 
     sudo gem install -y rufus-treechecker
@@ -18,6 +14,14 @@ or download[http://rubyforge.org/frs/?group_id=4812] it from RubyForge.
 
 
 == usage
+
+The treechecker uses ruby_parser (http://rubyforge.org/projects/parsetree)
+to turn Ruby code into s-expressions, the treechecker then 
+checks this sexp tree and raises a Rufus::SecurityError if an excluded pattern 
+is spotted.
+
+The excluded patterns are defined at the initialization of the TreeChecker
+instance by listing rules.
 
     require 'rubygems'
     require 'rufus-treechecker'
@@ -30,7 +34,22 @@ or download[http://rubyforge.org/frs/?group_id=4812] it from RubyForge.
     tc.check("1 + 1; abort")               # will raise a SecurityError
     tc.check("puts (1..10).to_a.inspect")  # OK
 
-see more at http://github.com/jmettraux/rufus-treechecker/tree/master/lib/rufus/treechecker.rb
+
+Nice, but how do I know what to exclude ?
+
+    require 'rubygems'
+    require 'rufus-treechecker'
+
+    Rufus::TreeChecker.new.ptree('a = 5 + 6; puts a')
+
+will yield
+
+    "a = 5 + 6; puts a"
+     => 
+     [:block, [:lasgn, :a, [:call, [:lit, 5], :+, [:array, [:lit, 6]]]], [:fcall, :puts, [:array, [:lvar, :a]]]]
+
+
+For more documentation, see http://github.com/jmettraux/rufus-treechecker/tree/master/lib/rufus/treechecker.rb
 
 
 == dependencies
