@@ -299,7 +299,7 @@ module Rufus
     def exclude_def
 
       @current_checks << [
-        :do_exclude_symbol, :defn, "method definitions are forbidden" ]
+        :do_exclude_symbol, :defn, 'method definitions are forbidden' ]
     end
 
     #
@@ -310,10 +310,20 @@ module Rufus
     #
     def exclude_class_tinkering (*exceptions)
 
+      #
+      # :class
+
       @current_checks << [
-        :do_exclude_class_tinkering ] + exceptions.collect { |e| parse(e.to_s) }
+        :do_exclude_class_tinkering
+      ] + exceptions.collect { |e| parse(e.to_s) }
+
+      #
+      # :sclass
+
       @current_checks << [
-        :do_exclude_symbol, :sclass, "defining or opening a class is forbidden"
+        :do_exclude_symbol,
+        :sclass,
+        'opening the metaclass of an instance is forbidde'
       ]
     end
 
@@ -323,7 +333,7 @@ module Rufus
     def exclude_module_tinkering
 
       @current_checks << [
-        :do_exclude_symbol, :module, "defining or opening a module is forbidden"
+        :do_exclude_symbol, :module, 'defining or opening a module is forbidden'
       ]
     end
 
@@ -485,7 +495,7 @@ module Rufus
       head = args[0]
 
       raise SecurityError.new(
-        args[1] || "#{head.inspect}' is forbidden"
+        args[1] || "#{head.inspect} is forbidden"
       ) if sexp[0, head.length] == head
     end
 
@@ -496,7 +506,7 @@ module Rufus
       return unless sexp[0] == :class
 
       raise SecurityError.new(
-        'class definition or opening forbidden'
+        'defining or opening a class is forbidden'
       ) if args.length == 0 or ( ! args.include?(sexp[2]))
         #
         # raise error if there are no exceptions or

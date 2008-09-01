@@ -228,12 +228,13 @@ class BasicTest < Test::Unit::TestCase
   #  tc = Rufus::TreeChecker.new do
   #  end
   #  #tc.ptree 'load "surf"'
-  #  #tc.ptree 'class Toto; load "nada"; end'
-  #  #tc.ptree 'class Toto; def m; load "nada"; end; end'
+  #  tc.ptree 'class Toto; load "nada"; end'
+  #  tc.ptree 'class Toto; def m; load "nada"; end; end'
+  #  tc.ptree 'class << toto; def m; load "nada"; end; end'
   #  #tc.ptree 'lambda { a; b; c }'
-  #  tc.ptree 'lambda { a = c }'
-  #  tc.ptree 'c = 0; a = c'
-  #  tc.ptree 'c = a = 0'
+  #  #tc.ptree 'lambda { a = c }'
+  #  #tc.ptree 'c = 0; a = c'
+  #  #tc.ptree 'c = a = 0'
   #  tc.ptree 'a = 5 + 6; puts a'
   #end
 end
