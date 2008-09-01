@@ -218,10 +218,29 @@ class BasicTest < Test::Unit::TestCase
     assert_ok(tc, 'lambda { a = 2 }')
   end
 
-  def test_12_freeze
+  def test_12_rebinding
 
-    # TODO : are there some rules with composite values ?
-    #        can't remember of any :(
+    tc = Rufus::TreeChecker.new do
+      exclude_call_to :class
+      exclude_rebinding Kernel, Rufus::TreeChecker
+    end
+
+    assert_nok(tc, 'k = Kernel')
+    assert_nok(tc, 'k = ::Kernel')
+    assert_nok(tc, 'c = Rufus::TreeChecker')
+    assert_nok(tc, 'c = ::Rufus::TreeChecker')
+    assert_nok(tc, 's = "".class')
+  end
+
+  def test_13_access_to
+
+    tc = Rufus::TreeChecker.new do
+      exclude_access_to File
+    end
+
+    assert_nok(tc, 'f = File')
+    assert_nok(tc, 'f = ::File')
+    assert_nok(tc, 'File.read "hello.txt"')
   end
 
   #def test_X

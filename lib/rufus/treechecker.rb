@@ -82,9 +82,10 @@ module Rufus
   # - exclude_fcall
   # - exclude_vcall
   # - exclude_fvcall
-  # - exclude_fvkcall
+  # - exclude_fvccall
   # - exclude_call_on
   # - exclude_call_to
+  # - exclude_rebinding
   # - exclude_def
   # - exclude_class_tinkering
   # - exclude_module_tinkering
@@ -95,6 +96,7 @@ module Rufus
   #
   # Those rules take no arguments
   #
+  # - exclude_access_to : prevents calling or rebinding a list of classes
   # - exclude_eval : bans eval, module_eval and instance_eval
   # - exclude_global_vars : bans calling or modifying global vars
   # - exclude_alias : bans calls to alias and alias_method
@@ -123,7 +125,7 @@ module Rufus
   #
   class TreeChecker
 
-    VERSION = '1.0'
+    VERSION = '1.0.1'
 
     #
     # pretty-prints the sexp tree of the given rubycode
@@ -209,9 +211,9 @@ module Rufus
     # Here is how it's built :
     #
     #    return TreeChecker.new do
-    #      exclude_fvkcall :abort
-    #      exclude_fvkcall :exit, :exit!
-    #      exclude_fvkcall :system
+    #      exclude_fvccall :abort
+    #      exclude_fvccall :exit, :exit!
+    #      exclude_fvccall :system
     #      exclude_eval
     #      exclude_alias
     #      exclude_global_vars
@@ -223,9 +225,9 @@ module Rufus
     def self.new_classic_tree_checker
 
       return TreeChecker.new do
-        exclude_fvkcall :abort
-        exclude_fvkcall :exit, :exit!
-        exclude_fvkcall :system
+        exclude_fvccall :abort
+        exclude_fvccall :exit, :exit!
+        exclude_fvccall :system
         exclude_eval
         exclude_alias
         exclude_global_vars
@@ -272,7 +274,7 @@ module Rufus
       :exclude_fcall,
       :exclude_vcall,
       :exclude_fvcall,
-      :exclude_fvkcall,
+      :exclude_fvccall,
       :exclude_call_on,
       :exclude_call_to
 
@@ -291,6 +293,38 @@ module Rufus
           end
         end
       EOS
+    end
+
+    #
+    # This rule :
+    #
+    #     exclude_rebinding Kernel
+    #
+    # will raise a security error for those pieces of code :
+    #
+    #     k = Kernel
+    #     k = ::Kernel
+    #
+    def exclude_rebinding (*args)
+
+      message = args.last.is_a?(String) ? args.pop : nil
+
+      args.each do |a|
+        c0 = parse(a.to_s)
+        c1 = parse("::#{a.to_s}")
+        @current_checks << [ :do_exclude_rebinding, c0, message ]
+        @current_checks << [ :do_exclude_rebinding, c1, message ]
+      end
+    end
+
+    #
+    # prevents access (calling methods and rebinding) to a class (or a list
+    # of classes
+    #
+    def exclude_access_to (*args)
+
+      exclude_call_on *args
+      exclude_rebinding *args
     end
 
     #
@@ -391,8 +425,8 @@ module Rufus
     #
     def exclude_raise
 
-      @current_checks << [ :do_exclude_fvkcall, :raise, "raise is forbidden" ]
-      @current_checks << [ :do_exclude_fvkcall, :throw, "throw is forbidden" ]
+      @current_checks << [ :do_exclude_fvccall, :raise, "raise is forbidden" ]
+      @current_checks << [ :do_exclude_fvccall, :throw, "throw is forbidden" ]
     end
 
     #
@@ -447,12 +481,13 @@ module Rufus
     end
 
     #
-    # excludes :fcall and :vcall and :call on Kernel
+    # excludes :fcall and :vcall and :call (to)
     #
-    def do_exclude_fvkcall (sexp, args)
+    def do_exclude_fvccall (sexp, args)
 
       do_exclude_fvcall(sexp, args)
-      do_exclude_head(sexp, cons([ :call, [ :const, :Kernel ] ], args))
+      #do_exclude_head(sexp, cons([ :call, [ :const, :Kernel ] ], args))
+      do_exclude_call_to(sexp, args)
     end
 
     #
@@ -476,27 +511,43 @@ module Rufus
     end
 
     #
+    # this method is called by all the methods checking composite sexps.
+    #
+    def do__exclude (sexp, args, default_error_message, &block)
+
+      return unless sexp.is_a?(Array)
+
+      raise SecurityError.new(
+        args[1] || default_error_message
+      ) if block.call(args)
+    end
+
+    #
     # raises a security error if a call to a given method of any instance
     # is found
     #
     def do_exclude_call_to (sexp, args)
 
-      return unless sexp.is_a?(Array)
+      do__exclude(sexp, args, "calls to '#{args[0]}' are forbidden") do
 
-      raise SecurityError.new(
-        args[1] || "calls to '#{args[0]}' are forbidden"
-      ) if sexp[0] == :call and sexp[2] == args[0]
+        (sexp[0] == :call and sexp[2] == args[0])
+      end
+    end
+
+    def do_exclude_rebinding (sexp, args)
+
+      do__exclude(sexp, args, "rebinding '#{args[0]}' is forbidden") do
+
+        (sexp[0] == :lasgn and sexp[2] == args[0])
+      end
     end
 
     def do_exclude_head (sexp, args)
 
-      return unless sexp.is_a?(Array)
+      do__exclude(sexp, args, "#{args[0].inspect} is forbidden") do
 
-      head = args[0]
-
-      raise SecurityError.new(
-        args[1] || "#{head.inspect} is forbidden"
-      ) if sexp[0, head.length] == head
+        (sexp[0, args[0].length] == args[0])
+      end
     end
 
     def do_exclude_class_tinkering (sexp, args)

@@ -46,7 +46,10 @@ will yield
 
     "a = 5 + 6; puts a"
      => 
-     [:block, [:lasgn, :a, [:call, [:lit, 5], :+, [:array, [:lit, 6]]]], [:fcall, :puts, [:array, [:lvar, :a]]]]
+     [:block, 
+       [:lasgn, :a, [:call, [:lit, 5], :+, [:array, [:lit, 6]]]], 
+       [:fcall, :puts, [:array, [:lvar, :a]]]
+     ]
 
 
 For more documentation, see http://github.com/jmettraux/rufus-treechecker/tree/master/lib/rufus/treechecker.rb

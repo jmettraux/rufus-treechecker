@@ -21,9 +21,9 @@ class OldTreeCheckerTest < Test::Unit::TestCase
   def test_0
 
     tc = Rufus::TreeChecker.new do
-      exclude_fvkcall :abort
-      exclude_fvkcall :exit, :exit!
-      exclude_fvkcall :system
+      exclude_fvccall :abort
+      exclude_fvccall :exit, :exit!
+      exclude_fvccall :system
       exclude_eval
       exclude_alias
       exclude_global_vars

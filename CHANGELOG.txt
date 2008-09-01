@@ -2,7 +2,12 @@
 = rufus-treechecker CHANGELOG.txt
 
 
-== rufus-treechecker - 1.0   not yet released
+== rufus-treechecker - 1.0.1   2008/09/01
+
+- more rules, slightly less code
+
+
+== rufus-treechecker - 1.0   2008/09/01
 
 - initial release
 
