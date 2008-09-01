@@ -148,6 +148,14 @@ module Rufus
       add_rules(&block)
     end
 
+    def to_s
+      p self.class
+      puts '  root_checks :'
+      puts @root_checks.collect { |r| r.inspect }.join("\n")
+      puts '  checks :'
+      puts @checks.collect { |r| r.inspect }.join("\n")
+    end
+
     #
     # Performs the check on the given String of ruby code. Will raise a
     # Rufus::SecurityError if there is something excluded by the rules
