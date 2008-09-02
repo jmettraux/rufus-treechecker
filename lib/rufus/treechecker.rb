@@ -125,7 +125,7 @@ module Rufus
   #
   class TreeChecker
 
-    VERSION = '1.0.1'
+    VERSION = '1.0.2'
 
     #
     # pretty-prints the sexp tree of the given rubycode
@@ -179,10 +179,10 @@ module Rufus
     #
     def clone
 
-      copy = TreeChecker.new
-      copy.instance_variable_set(:@root_set, @root_set.clone)
-      copy.instance_variable_set(:@set, @set.clone)
-      copy
+      tc = TreeChecker.new
+      tc.instance_variable_set(:@root_set, @root_set.clone)
+      tc.instance_variable_set(:@set, @set.clone)
+      tc
     end
 
     #
@@ -213,6 +213,14 @@ module Rufus
         @excluded_symbols = {} # symbol => exclusion_message
         @accepted_patterns = {} # 1st elt of pattern => pattern
         @excluded_patterns = {} # 1st elt of pattern => pattern, excl_message
+      end
+
+      def clone
+        rs = RuleSet.new
+        rs.instance_variable_set(:@excluded_symbols, @excluded_symbols.dup)
+        rs.instance_variable_set(:@accepted_patterns, @accepted_patterns.dup)
+        rs.instance_variable_set(:@excluded_patterns, @excluded_patterns.dup)
+        rs
       end
 
       def exclude_symbol (s, message)
@@ -321,7 +329,8 @@ module Rufus
     def extract_message (args)
 
       message = nil
-      message = args.dup.pop if args.last.is_a?(String)
+      args = args.dup
+      message = args.pop if args.last.is_a?(String)
       [ args, message ]
     end
 
