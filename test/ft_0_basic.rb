@@ -68,6 +68,7 @@ class BasicTest < Test::Unit::TestCase
       exclude_call_on File, FileUtils
       exclude_call_on IO
     end
+    #puts tc.to_s
 
     assert_nok(tc, 'data = File.read("surf.txt")')
     assert_nok(tc, 'f = File.new("surf.txt")')
@@ -99,23 +100,9 @@ class BasicTest < Test::Unit::TestCase
   def test_5b_exclude_class_tinkering_with_exceptions
 
     tc = Rufus::TreeChecker.new do
-      exclude_class_tinkering String, Rufus::TreeChecker
+      exclude_class_tinkering :except => [ String, Rufus::TreeChecker ]
     end
-
-    assert_nok(tc, 'class String; def length; 3; end; end')
-
-    assert_ok(tc, 'class S2 < String; def length; 3; end; end')
-    assert_ok(tc, 'class Toto < Rufus::TreeChecker; def length; 3; end; end')
-
-    assert_nok(tc, 'class Toto; end')
-    assert_nok(tc, 'class Alpha::Toto; end')
-  end
-
-  def test_5c_exclude_class_tinkering_with_exceptions
-
-    tc = Rufus::TreeChecker.new do
-      exclude_class_tinkering 'String', 'Rufus::TreeChecker'
-    end
+    #puts tc.to_s
 
     assert_nok(tc, 'class String; def length; 3; end; end')
 
@@ -238,9 +225,12 @@ class BasicTest < Test::Unit::TestCase
       exclude_access_to File
     end
 
+    #puts tc.to_s
+
     assert_nok(tc, 'f = File')
     assert_nok(tc, 'f = ::File')
     assert_nok(tc, 'File.read "hello.txt"')
+    assert_nok(tc, '::File.read "hello.txt"')
   end
 
   #def test_X

@@ -142,20 +142,19 @@ module Rufus
     #
     def initialize (&block)
 
-      @root_checks = []
-      @checks = []
-
-      @current_checks = @checks
+      @root_set = RuleSet.new
+      @set = RuleSet.new
+      @current_set = @set
 
       add_rules(&block)
     end
 
     def to_s
-      p self.class
-      puts '  root_checks :'
-      puts @root_checks.collect { |r| r.inspect }.join("\n")
-      puts '  checks :'
-      puts @checks.collect { |r| r.inspect }.join("\n")
+      s = "#{self.class} (#{self.object_id})\n"
+      s << "root_set :\n"
+      s << @root_set.to_s
+      s << "set :\n"
+      s << @set.to_s
     end
 
     #
@@ -167,9 +166,10 @@ module Rufus
 
       sexp = parse(rubycode)
 
-      @root_checks.each do |meth, *args|
-        send meth, sexp, args
-      end
+      #@root_checks.each do |meth, *args|
+      #  send meth, sexp, args
+      #end
+      @root_set.check(sexp)
 
       do_check(sexp)
     end
@@ -180,7 +180,8 @@ module Rufus
     def clone
 
       copy = TreeChecker.new
-      copy.instance_variable_set(:@checks, @checks.dup)
+      copy.instance_variable_set(:@root_set, @root_set.clone)
+      copy.instance_variable_set(:@set, @set.clone)
       copy
     end
 
@@ -199,45 +200,108 @@ module Rufus
     #
     def freeze
       super
-      @root_checks.freeze
-      @root_checks.each { |c| c.freeze }
-      @checks.freeze
-      @checks.each { |c| c.freeze }
-    end
-
-    #
-    # generates a 'classic' tree checker
-    #
-    # Here is how it's built :
-    #
-    #    return TreeChecker.new do
-    #      exclude_fvccall :abort
-    #      exclude_fvccall :exit, :exit!
-    #      exclude_fvccall :system
-    #      exclude_eval
-    #      exclude_alias
-    #      exclude_global_vars
-    #      exclude_call_on File, FileUtils
-    #      exclude_class_tinkering
-    #      exclude_module_tinkering
-    #    end
-    #
-    def self.new_classic_tree_checker
-
-      return TreeChecker.new do
-        exclude_fvccall :abort
-        exclude_fvccall :exit, :exit!
-        exclude_fvccall :system
-        exclude_eval
-        exclude_alias
-        exclude_global_vars
-        exclude_call_on File, FileUtils
-        exclude_class_tinkering
-        exclude_module_tinkering
-      end
+      @root_set.freeze
+      @set.freeze
     end
 
     protected
+
+    class RuleSet
+
+      def initialize
+
+        @excluded_symbols = {} # symbol => exclusion_message
+        @accepted_patterns = {} # 1st elt of pattern => pattern
+        @excluded_patterns = {} # 1st elt of pattern => pattern, excl_message
+      end
+
+      def exclude_symbol (s, message)
+
+        @excluded_symbols[s] = (message || ":#{s} is excluded")
+      end
+
+      def accept_pattern (pat)
+
+        (@accepted_patterns[pat.first] ||= []) << pat
+      end
+
+      def exclude_pattern (pat, message)
+
+        (@excluded_patterns[pat.first] ||= []) << [
+          pat, message || "#{pat.inspect} is excluded" ]
+      end
+
+      def check (sexp)
+
+        if sexp.is_a?(Symbol)
+
+          m = @excluded_symbols[sexp]
+          raise SecurityError.new(m) if m
+
+        elsif sexp.is_a?(Array)
+
+          # accepted patterns are evaluated before excluded patterns
+          # if one is found the excluded patterns are skipped
+
+          pats = @accepted_patterns[sexp.first]
+          pats.each { |pat| return if check_pattern(sexp, pat) } if pats
+
+          pats = @excluded_patterns[sexp.first]
+          return unless pats
+
+          pats.each do |pat, msg|
+            raise SecurityError.new(msg) if check_pattern(sexp, pat)
+          end
+        end
+      end
+
+      def freeze
+
+        super
+
+        @excluded_symbols.freeze
+        @excluded_symbols.each { |k, v| k.freeze; v.freeze }
+        @accepted_patterns.freeze
+        @accepted_patterns.each { |k, v| k.freeze; v.freeze }
+        @excluded_patterns.freeze
+        @excluded_patterns.each { |k, v| k.freeze; v.freeze }
+      end
+
+      def to_s
+
+        s = "#{self.class} (#{self.object_id})\n"
+        s << "  excluded symbols :\n"
+        @excluded_symbols.each do |k, v|
+          s << "    - #{k.inspect}, #{v}\n"
+        end
+        s << "  accepted patterns :\n"
+        @accepted_patterns.each do |k, v|
+          v.each do |p|
+            s << "    - #{k.inspect}, #{p.inspect}\n"
+          end
+        end
+        s << "  excluded patterns :\n"
+        @excluded_patterns.each do |k, v|
+          v.each do |p|
+            s << "    - #{k.inspect}, #{p.inspect}\n"
+          end
+        end
+        s
+      end
+
+      protected
+
+      def check_pattern (sexp, pat)
+
+        return false if sexp.length < pat.length
+
+        (1..pat.length-1).each do |i|
+          return false if (pat[i] != :any and pat[i] != sexp[i])
+        end
+
+        return true # we have a match
+      end
+    end
 
     #--
     # the methods used to define the checks
@@ -249,9 +313,25 @@ module Rufus
     #
     def at_root (&block)
 
-      @current_checks = @root_checks
+      @current_set = @root_set
       add_rules(&block)
-      @current_checks = @checks
+      @current_set = @set
+    end
+
+    def extract_message (args)
+
+      message = nil
+      message = args.dup.pop if args.last.is_a?(String)
+      [ args, message ]
+    end
+
+    def expand_class (arg)
+
+      if arg.is_a?(Class) or arg.is_a?(Module)
+        [ parse(arg.to_s), parse("::#{arg.to_s}") ]
+      else
+        [ arg ]
+      end
     end
 
     #
@@ -266,33 +346,39 @@ module Rufus
     #
     def exclude_head (head, message=nil)
 
-      @current_checks << [ :do_exclude_head, head, message ]
+      @current_set.exclude_pattern(head, message)
     end
 
-    [
-      :exclude_symbol,
-      :exclude_fcall,
-      :exclude_vcall,
-      :exclude_fvcall,
-      :exclude_fvccall,
-      :exclude_call_on,
-      :exclude_call_to
+    def exclude_symbol (*args)
+      args, message = extract_message(args)
+      args.each { |a| @current_set.exclude_symbol(a, message) }
+    end
 
-    ].each do |m|
-      class_eval <<-EOS
-        def #{m} (*args)
+    def exclude_fcall (*args)
+      do_exclude_pair(:fcall, args)
+    end
 
-          message = args.last.is_a?(String) ? args.pop : nil
+    def exclude_vcall (*args)
+      do_exclude_pair(:vcall, args)
+    end
 
-          args.each do |a| 
+    def exclude_fvcall (*args)
+      do_exclude_pair(:fcall, args)
+      do_exclude_pair(:vcall, args)
+    end
 
-            a = [ Class, Module ].include?(a.class) ? \
-              parse(a.to_s) : a.to_sym
+    def exclude_call_on (*args)
+      do_exclude_pair(:call, args)
+    end
 
-            @current_checks << [ :do_#{m}, a, message ]
-          end
-        end
-      EOS
+    def exclude_call_to (*args)
+      args, message = extract_message(args)
+      args.each { |a| @current_set.exclude_pattern([ :call, :any, a], message) }
+    end
+
+    def exclude_fvccall (*args)
+      exclude_fvcall(*args)
+      exclude_call_to(*args)
     end
 
     #
@@ -306,14 +392,11 @@ module Rufus
     #     k = ::Kernel
     #
     def exclude_rebinding (*args)
-
-      message = args.last.is_a?(String) ? args.pop : nil
-
+      args, message = extract_message(args)
       args.each do |a|
-        c0 = parse(a.to_s)
-        c1 = parse("::#{a.to_s}")
-        @current_checks << [ :do_exclude_rebinding, c0, message ]
-        @current_checks << [ :do_exclude_rebinding, c1, message ]
+        expand_class(a).each do |c|
+          @current_set.exclude_pattern([ :lasgn, :any, c], message)
+        end
       end
     end
 
@@ -322,7 +405,6 @@ module Rufus
     # of classes
     #
     def exclude_access_to (*args)
-
       exclude_call_on *args
       exclude_rebinding *args
     end
@@ -332,8 +414,7 @@ module Rufus
     #
     def exclude_def
 
-      @current_checks << [
-        :do_exclude_symbol, :defn, 'method definitions are forbidden' ]
+      @current_set.exclude_symbol(:defn, 'method definitions are forbidden')
     end
 
     #
@@ -342,23 +423,21 @@ module Rufus
     # a list of exceptions (classes) can be passed. Subclassing those
     # exceptions is permitted.
     #
-    def exclude_class_tinkering (*exceptions)
+    #     exclude_class_tinkering :except => [ String, Array ]
+    #
+    def exclude_class_tinkering (*args)
 
-      #
-      # :class
+      @current_set.exclude_pattern(
+        [ :sclass ], 'opening the metaclass of an instance is forbidden')
 
-      @current_checks << [
-        :do_exclude_class_tinkering
-      ] + exceptions.collect { |e| parse(e.to_s) }
+      Array(args.last[:except]).each { |e|
+        expand_class(e).each do |c|
+          @current_set.accept_pattern([ :class, :any, c ])
+        end
+      } if args.last.is_a?(Hash)
 
-      #
-      # :sclass
-
-      @current_checks << [
-        :do_exclude_symbol,
-        :sclass,
-        'opening the metaclass of an instance is forbidde'
-      ]
+      @current_set.exclude_pattern(
+        [ :class ], 'defining a class is forbidden')
     end
 
     #
@@ -366,9 +445,8 @@ module Rufus
     #
     def exclude_module_tinkering
 
-      @current_checks << [
-        :do_exclude_symbol, :module, 'defining or opening a module is forbidden'
-      ]
+      @current_set.exclude_symbol(
+        :module, 'defining or opening a module is forbidden')
     end
 
     #
@@ -376,10 +454,8 @@ module Rufus
     #
     def exclude_global_vars
 
-      @current_checks << [
-        :do_exclude_symbol, :gvar, "global vars are forbidden" ]
-      @current_checks << [
-        :do_exclude_symbol, :gasgn, "global vars are forbidden" ]
+      @current_set.exclude_symbol(:gvar, 'global vars are forbidden')
+      @current_set.exclude_symbol(:gasgn, 'global vars are forbidden')
     end
 
     #
@@ -387,10 +463,8 @@ module Rufus
     #
     def exclude_alias
 
-      @current_checks << [
-        :do_exclude_symbol, :alias, "'alias' is forbidden" ]
-      @current_checks << [
-        :do_exclude_symbol, :alias_method, "'alias_method' is forbidden" ]
+      @current_set.exclude_symbol(:alias, "'alias' is forbidden")
+      @current_set.exclude_symbol(:alias_method, "'alias_method' is forbidden")
     end
 
     #
@@ -398,26 +472,17 @@ module Rufus
     #
     def exclude_eval
 
-      @current_checks << [
-        :do_exclude_fcall,
-        :eval,
-        "eval() is forbidden" ]
-      @current_checks << [
-        :do_exclude_call_to,
-        :instance_eval,
-        "instance_eval() is forbidden" ]
-      @current_checks << [
-        :do_exclude_call_to,
-        :module_eval,
-        "module_eval() is forbidden" ]
+      exclude_fcall(:eval, 'eval() is forbidden')
+      exclude_call_to(:module_eval, 'module_eval() is forbidden')
+      exclude_call_to(:instance_eval, 'instance_eval() is forbidden')
     end
 
     #
     # bans the use of backquotes
     #
     def exclude_backquotes
-      @current_checks << [
-        :do_exclude_symbol, :xstr, "backquotes are forbidden" ]
+
+      @current_set.exclude_symbol(:xstr, 'backquotes are forbidden')
     end
 
     #
@@ -425,8 +490,18 @@ module Rufus
     #
     def exclude_raise
 
-      @current_checks << [ :do_exclude_fvccall, :raise, "raise is forbidden" ]
-      @current_checks << [ :do_exclude_fvccall, :throw, "throw is forbidden" ]
+      exclude_fvccall(:raise, 'raise is forbidden')
+      exclude_fvccall(:throw, 'throw is forbidden')
+    end
+
+    def do_exclude_pair (first, args)
+
+      args, message = extract_message(args)
+      args.each do |a|
+        expand_class(a).each do |c|
+          @current_set.exclude_pattern([ first, c ], message)
+        end
+      end
     end
 
     #
@@ -434,134 +509,13 @@ module Rufus
     #
     def do_check (sexp)
 
-      @checks.each do |exclusion_method, *args|
-        send exclusion_method, sexp, args
-      end
+      @set.check(sexp)
 
       return unless sexp.is_a?(Array) # check over, seems fine...
 
       # check children
 
       sexp.each { |c| do_check c }
-    end
-
-    #
-    # the methods that actually perform the checks
-    # (and potentially raise security exceptions)
-
-    #
-    # constructs a new set of arguments by inserting the newhead at the
-    # beginning of the arguments
-    #
-    def cons (newhead, args)
-
-      newhead = Array(newhead)
-      newhead << args[0]
-
-      [ newhead ] + (args[1, -1] || [])
-    end
-
-    def do_exclude_fcall (sexp, args)
-
-      do_exclude_head(sexp, cons(:fcall, args))
-    end
-
-    def do_exclude_vcall (sexp, args)
-
-      do_exclude_head(sexp, cons(:vcall, args))
-    end
-
-    #
-    # excludes :fcall and :vcall
-    #
-    def do_exclude_fvcall (sexp, args)
-
-      do_exclude_fcall(sexp, args)
-      do_exclude_vcall(sexp, args)
-    end
-
-    #
-    # excludes :fcall and :vcall and :call (to)
-    #
-    def do_exclude_fvccall (sexp, args)
-
-      do_exclude_fvcall(sexp, args)
-      #do_exclude_head(sexp, cons([ :call, [ :const, :Kernel ] ], args))
-      do_exclude_call_to(sexp, args)
-    end
-
-    #
-    # raises a Rufus::SecurityError if the sexp is a reference to
-    # a certain symbol (like :gvar or :alias).
-    #
-    def do_exclude_symbol (sexp, args)
-
-      raise SecurityError.new(
-        args[1] || "symbol :#{excluded_symbol} is forbidden"
-      ) if sexp == args[0]
-    end
-
-    #
-    # raises a security error if the sexp is a call on a given constant or
-    # module (class)
-    #
-    def do_exclude_call_on (sexp, args)
-
-      do_exclude_head(sexp, [ [:call, args[0]] ] + (args[1, -1] || []))
-    end
-
-    #
-    # this method is called by all the methods checking composite sexps.
-    #
-    def do__exclude (sexp, args, default_error_message, &block)
-
-      return unless sexp.is_a?(Array)
-
-      raise SecurityError.new(
-        args[1] || default_error_message
-      ) if block.call(args)
-    end
-
-    #
-    # raises a security error if a call to a given method of any instance
-    # is found
-    #
-    def do_exclude_call_to (sexp, args)
-
-      do__exclude(sexp, args, "calls to '#{args[0]}' are forbidden") do
-
-        (sexp[0] == :call and sexp[2] == args[0])
-      end
-    end
-
-    def do_exclude_rebinding (sexp, args)
-
-      do__exclude(sexp, args, "rebinding '#{args[0]}' is forbidden") do
-
-        (sexp[0] == :lasgn and sexp[2] == args[0])
-      end
-    end
-
-    def do_exclude_head (sexp, args)
-
-      do__exclude(sexp, args, "#{args[0].inspect} is forbidden") do
-
-        (sexp[0, args[0].length] == args[0])
-      end
-    end
-
-    def do_exclude_class_tinkering (sexp, args)
-
-      return unless sexp.is_a?(Array) # lonely symbols are not class definitions
-
-      return unless sexp[0] == :class
-
-      raise SecurityError.new(
-        'defining or opening a class is forbidden'
-      ) if args.length == 0 or ( ! args.include?(sexp[2]))
-        #
-        # raise error if there are no exceptions or
-        # if the parent class is not a member of the exception list
     end
 
     #

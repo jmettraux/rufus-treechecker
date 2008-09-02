@@ -28,7 +28,7 @@ class OldTreeCheckerTest < Test::Unit::TestCase
       exclude_alias
       exclude_global_vars
       exclude_call_on File, FileUtils
-      exclude_class_tinkering Testy::Tasty
+      exclude_class_tinkering :except => Testy::Tasty
       exclude_module_tinkering
 
       exclude_fvcall :public

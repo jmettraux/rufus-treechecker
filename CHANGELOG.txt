@@ -1,6 +1,10 @@
 
 = rufus-treechecker CHANGELOG.txt
 
+== rufus-treechecker - 1.0.2   2008/09/02
+
+- complete refactoring, huge perf gain
+
 
 == rufus-treechecker - 1.0.1   2008/09/01
 
