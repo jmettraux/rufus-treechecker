@@ -125,16 +125,21 @@ module Rufus
   #
   class TreeChecker
 
-    VERSION = '1.0.2'
+    VERSION = '1.0.3'
 
     #
     # pretty-prints the sexp tree of the given rubycode
     #
     def ptree (rubycode)
-      puts
-      puts rubycode.inspect
-      puts " => "
-      puts parse(rubycode).inspect
+      puts stree(rubycode)
+    end
+
+    #
+    # returns the pretty-printed string of the given rubycode
+    # (thanks ruby_parser).
+    #
+    def stree (rubycode)
+      "#{rubycode.inspect}\n =>\n#{parse(rubycode).inspect}"
     end
 
     #
@@ -481,7 +486,7 @@ module Rufus
     #
     def exclude_eval
 
-      exclude_fcall(:eval, 'eval() is forbidden')
+      exclude_call_to(:eval, 'eval() is forbidden')
       exclude_call_to(:module_eval, 'module_eval() is forbidden')
       exclude_call_to(:instance_eval, 'instance_eval() is forbidden')
     end

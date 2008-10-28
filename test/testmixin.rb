@@ -18,7 +18,7 @@ module TestMixin
     tc.check(rubycode)
   end
   def assert_nok (tc, rubycode)
-    assert_raise Rufus::SecurityError do
+    assert_raise Rufus::SecurityError, tc.stree(rubycode) do
       tc.check(rubycode)
     end
   end

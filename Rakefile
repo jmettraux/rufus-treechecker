@@ -31,7 +31,7 @@ spec = Gem::Specification.new do |s|
   s.has_rdoc = true
   s.extra_rdoc_files = [ 'README.txt' ]
 
-  [ 'rogue_parser' ].each do |d|
+  [ 'ruby_parser' ].each do |d|
     s.requirements << d
     s.add_dependency d
   end
@@ -69,10 +69,10 @@ end
 Rake::PackageTask.new("rufus-treechecker", Rufus::TreeChecker::VERSION) do |pkg|
   pkg.need_zip = true
   pkg.package_files = FileList[
-    "Rakefile",
-    "*.txt",
-    "lib/**/*",
-    "test/**/*"
+    'Rakefile',
+    '*.txt',
+    'lib/**/*',
+    'test/**/*'
   ].to_a
   #pkg.package_files.delete("MISC.txt")
   class << pkg
@@ -90,16 +90,16 @@ ALLISON="/Library/Ruby/Gems/1.8/gems/allison-2.0.3/lib/allison.rb"
 
 Rake::RDocTask.new do |rd|
 
-  rd.main = "README.txt"
+  rd.main = 'README.txt'
 
-  rd.rdoc_dir = "html/rufus-treechecker"
+  rd.rdoc_dir = 'html/rufus-treechecker'
 
   rd.rdoc_files.include(
-    "README.txt",
-    "CHANGELOG.txt",
-    "LICENSE.txt",
-    "CREDITS.txt",
-    "lib/**/*.rb")
+    'README.txt',
+    'CHANGELOG.txt',
+    'LICENSE.txt',
+    'CREDITS.txt',
+    'lib/**/*.rb')
 
   rd.title = "rufus-treechecker rdoc"
 
@@ -115,8 +115,8 @@ end
 
 task :upload_website => [ :clean, :rdoc ] do
 
-  account = "jmettraux@rubyforge.org"
-  webdir = "/var/www/gforge-projects/rufus"
+  account = 'jmettraux@rubyforge.org'
+  webdir = '/var/www/gforge-projects/rufus'
 
   sh "rsync -azv -e ssh html/rufus-treechecker #{account}:#{webdir}/"
 end

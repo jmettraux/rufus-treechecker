@@ -19,8 +19,10 @@ class BasicTest < Test::Unit::TestCase
     tc = Rufus::TreeChecker.new do
       exclude_vcall :abort
       exclude_fcall :abort
+      exclude_call_to :abort
       exclude_fvcall :exit, :exit!
       exclude_call_to :exit
+      exclude_call_to :exit!
     end
 
     assert_nok(tc, 'exit')
@@ -130,6 +132,7 @@ class BasicTest < Test::Unit::TestCase
     end
 
     assert_nok(tc, 'eval("code")')
+    assert_nok(tc, 'Kernel.eval("code")')
     assert_nok(tc, 'toto.instance_eval("code")')
     assert_nok(tc, 'Toto.module_eval("code")')
   end
@@ -161,9 +164,9 @@ class BasicTest < Test::Unit::TestCase
   def test_10_exclude_public
 
     tc = Rufus::TreeChecker.new do
-      exclude_fvcall :public
-      exclude_fvcall :protected
-      exclude_fvcall :private
+      exclude_fvccall :public
+      exclude_fvccall :protected
+      exclude_fvccall :private
     end
 
     assert_nok(tc, 'public')
