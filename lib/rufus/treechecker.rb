@@ -26,7 +26,7 @@
 # "made in Japan" (as opposed to "swiss made")
 #
 
-require 'ruby_parser' # gem 'rogue_parser'
+require 'ruby_parser'
 
 
 module Rufus

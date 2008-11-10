@@ -57,7 +57,7 @@ For more documentation, see http://github.com/jmettraux/rufus-treechecker/tree/m
 
 == dependencies
 
-the 'rogue-parser' gem
+the 'ruby_parser' gem by Ryan Davis.
 
 
 == mailing list
