@@ -8,6 +8,7 @@
 #
 
 require 'testmixin'
+require 'fileutils'
 
 
 class BasicTest < Test::Unit::TestCase
@@ -17,10 +18,10 @@ class BasicTest < Test::Unit::TestCase
   def test_0
 
     tc = Rufus::TreeChecker.new do
-      exclude_vcall :abort
-      exclude_fcall :abort
+      #exclude_vcall :abort
+      #exclude_fcall :abort
       exclude_call_to :abort
-      exclude_fvcall :exit, :exit!
+      #exclude_fvcall :exit, :exit!
       exclude_call_to :exit
       exclude_call_to :exit!
     end
@@ -35,6 +36,7 @@ class BasicTest < Test::Unit::TestCase
     assert_nok(tc, 'Kernel::exit')
     assert_nok(tc, 'Kernel::exit()')
     assert_nok(tc, '::Kernel.exit')
+    assert_nok(tc, '::Kernel.exit(1)')
 
     assert_ok(tc, '1 + 1')
   end
