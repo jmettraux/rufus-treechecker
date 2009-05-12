@@ -1,6 +1,5 @@
-#
 #--
-# Copyright (c) 2008, John Mettraux, jmettraux@gmail.com
+# Copyright (c) 2008-2009, John Mettraux, jmettraux@gmail.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,12 +18,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-#++
-#
-
 #
 # "made in Japan" (as opposed to "swiss made")
-#
+#++
+
 
 require 'ruby_parser'
 
@@ -127,14 +124,12 @@ module Rufus
 
     VERSION = '1.0.3'
 
-    #
     # pretty-prints the sexp tree of the given rubycode
     #
     def ptree (rubycode)
       puts stree(rubycode)
     end
 
-    #
     # returns the pretty-printed string of the given rubycode
     # (thanks ruby_parser).
     #
@@ -142,7 +137,6 @@ module Rufus
       "#{rubycode.inspect}\n =>\n#{parse(rubycode).inspect}"
     end
 
-    #
     # initializes the TreeChecker, expects a block
     #
     def initialize (&block)
@@ -162,7 +156,6 @@ module Rufus
       s << @set.to_s
     end
 
-    #
     # Performs the check on the given String of ruby code. Will raise a
     # Rufus::SecurityError if there is something excluded by the rules
     # specified at the initialization of the TreeChecker instance.
@@ -179,8 +172,7 @@ module Rufus
       do_check(sexp)
     end
 
-    #
-    # return a copy of this TreeChecker instance
+    # Return a copy of this TreeChecker instance
     #
     def clone
 
@@ -190,8 +182,7 @@ module Rufus
       tc
     end
 
-    #
-    # adds a set of checks (rules) to this treechecker. Returns self.
+    # Adds a set of checks (rules) to this treechecker. Returns self.
     #
     def add_rules (&block)
 
@@ -200,8 +191,7 @@ module Rufus
       self
     end
 
-    #
-    # freezes the treechecker instance "in depth"
+    # Freezes the treechecker instance "in depth"
     #
     def freeze
       super
@@ -320,8 +310,7 @@ module Rufus
     # the methods used to define the checks
     #++
 
-    #
-    # within the 'at_root' block, rules are added to the @root_checks, ie
+    # Within the 'at_root' block, rules are added to the @root_checks, ie
     # they are evaluated only for the toplevel (root) sexp.
     #
     def at_root (&block)
@@ -348,8 +337,7 @@ module Rufus
       end
     end
 
-    #
-    # adds a rule that will forbid sexps that begin with the given head
+    # Adds a rule that will forbid sexps that begin with the given head
     #
     #     tc = TreeChecker.new do
     #       exclude_head [ :block ]
@@ -395,7 +383,6 @@ module Rufus
       exclude_call_to(*args)
     end
 
-    #
     # This rule :
     #
     #     exclude_rebinding Kernel
@@ -423,16 +410,14 @@ module Rufus
       exclude_rebinding *args
     end
 
-    #
-    # bans method definitions
+    # Bans method definitions
     #
     def exclude_def
 
       @current_set.exclude_symbol(:defn, 'method definitions are forbidden')
     end
 
-    #
-    # bans the defintion and the [re]openening of classes
+    # Bans the defintion and the [re]openening of classes
     #
     # a list of exceptions (classes) can be passed. Subclassing those
     # exceptions is permitted.
@@ -454,8 +439,7 @@ module Rufus
         [ :class ], 'defining a class is forbidden')
     end
 
-    #
-    # bans the definition or the opening of modules
+    # Bans the definition or the opening of modules
     #
     def exclude_module_tinkering
 
@@ -463,8 +447,7 @@ module Rufus
         :module, 'defining or opening a module is forbidden')
     end
 
-    #
-    # bans referencing or setting the value of global variables
+    # Bans referencing or setting the value of global variables
     #
     def exclude_global_vars
 
@@ -472,8 +455,7 @@ module Rufus
       @current_set.exclude_symbol(:gasgn, 'global vars are forbidden')
     end
 
-    #
-    # bans the usage of 'alias'
+    # Bans the usage of 'alias'
     #
     def exclude_alias
 
@@ -481,8 +463,7 @@ module Rufus
       @current_set.exclude_symbol(:alias_method, "'alias_method' is forbidden")
     end
 
-    #
-    # bans the use of 'eval', 'module_eval' and 'instance_eval'
+    # Bans the use of 'eval', 'module_eval' and 'instance_eval'
     #
     def exclude_eval
 
@@ -491,16 +472,14 @@ module Rufus
       exclude_call_to(:instance_eval, 'instance_eval() is forbidden')
     end
 
-    #
-    # bans the use of backquotes
+    # Bans the use of backquotes
     #
     def exclude_backquotes
 
       @current_set.exclude_symbol(:xstr, 'backquotes are forbidden')
     end
 
-    #
-    # bans raise and throw
+    # Bans raise and throw
     #
     def exclude_raise
 
@@ -518,8 +497,7 @@ module Rufus
       end
     end
 
-    #
-    # the actual check method, check() is rather a bootstrap one...
+    # The actual check method, check() is rather a bootstrap one...
     #
     def do_check (sexp)
 
@@ -532,8 +510,7 @@ module Rufus
       sexp.each { |c| do_check c }
     end
 
-    #
-    # a simple parse (relies on ruby_parser currently)
+    # A simple parse (relies on ruby_parser currently)
     #
     def parse (rubycode)
 
