@@ -7,7 +7,7 @@
 # Tue Sep  2 14:28:01 JST 2008
 #
 
-require 'testmixin'
+require File.join(File.dirname(__FILE__), 'testmixin')
 
 class CloneTest < Test::Unit::TestCase
   include TestMixin

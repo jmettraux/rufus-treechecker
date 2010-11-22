@@ -30,7 +30,7 @@ spec = Gem::Specification.new do |s|
   s.require_path = "lib"
   #s.autorequire = "rufus-whatever"
   s.test_file = "test/test.rb"
-  s.has_rdoc = true
+  s.has_rdoc = false
   s.extra_rdoc_files = [ 'README.txt' ]
 
   [ 'ruby_parser' ].each do |d|

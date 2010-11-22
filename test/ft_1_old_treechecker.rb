@@ -7,7 +7,7 @@
 # Fri Aug 29 10:13:33 JST 2008
 #
 
-require 'testmixin'
+require File.join(File.dirname(__FILE__), 'testmixin')
 
 module Testy
   class Tasty

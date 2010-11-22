@@ -2,6 +2,9 @@
 = rufus-treechecker CHANGELOG.txt
 
 
+== rufus-treechecker - 1.0.4   not yet released
+
+
 == rufus-treechecker - 1.0.3   released 2008/10/29
 
 - todo   #22570 : moved to ruby_parser 2.0
