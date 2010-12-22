@@ -59,7 +59,7 @@ end
 Rake::RDocTask.new do |rd|
 
   rd.main = 'README.txt'
-  rd.rdoc_dir = 'rdoc'
+  rd.rdoc_dir = "rdoc/#{GEMSPEC.name}"
 
   rd.rdoc_files.include('README.txt', 'CHANGELOG.txt', 'CREDITS.txt', 'lib/**/*.rb')
 

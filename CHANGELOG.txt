@@ -2,7 +2,7 @@
 = rufus-treechecker CHANGELOG.txt
 
 
-== rufus-treechecker - 1.0.4   not yet released
+== rufus-treechecker - 1.0.4   released 2010/12/22
 
 - require rufus/tree_checker and rufus-tree_checker
 - Rufus::Treechecker.parse(code) => tree
