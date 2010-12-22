@@ -514,10 +514,12 @@ module Rufus
     #
     def parse(rubycode)
 
-      #(@parser ||= RubyParser.new).parse(rubycode).to_a
-        #
-        # parser goes ballistic after a while, seems having a new parser
-        # each is not heavy at all
+      self.class.parse(rubycode)
+    end
+
+    # A simple parse (relies on ruby_parser currently)
+    #
+    def self.parse(rubycode)
 
       RubyParser.new.parse(rubycode).to_a
     end

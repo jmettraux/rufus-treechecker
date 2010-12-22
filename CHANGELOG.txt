@@ -4,6 +4,8 @@
 
 == rufus-treechecker - 1.0.4   not yet released
 
+- Rufus::Treechecker.parse(code) => tree
+
 
 == rufus-treechecker - 1.0.3   released 2008/10/29
 

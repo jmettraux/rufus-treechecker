@@ -17,17 +17,11 @@ CLEAN.include('pkg', 'rdoc')
 #
 # test / spec
 
-#task :spec do
-#  sh 'rspec spec/'
-#end
-#task :test => :spec
-#task :default => :spec
-
-task :test do
-  sh 'ruby -I. test/test.rb'
+task :spec do
+  sh 'rspec spec/'
 end
-
-task :default => :test
+task :test => :spec
+task :default => :spec
 
 
 #
