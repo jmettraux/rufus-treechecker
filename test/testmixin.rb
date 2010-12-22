@@ -14,15 +14,15 @@ require 'rufus/treechecker'
 
 module TestMixin
 
-  def assert_ok (tc, rubycode)
+  def assert_ok(tc, rubycode)
     tc.check(rubycode)
   end
-  def assert_nok (tc, rubycode)
+  def assert_nok(tc, rubycode)
     assert_raise Rufus::SecurityError, tc.stree(rubycode) do
       tc.check(rubycode)
     end
   end
-  def assert_nocompile (tc, rubycode)
+  def assert_nocompile(tc, rubycode)
     assert_raise Racc::ParseError do
       tc.check(rubycode)
     end

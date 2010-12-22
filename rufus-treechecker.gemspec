@@ -10,7 +10,9 @@ Gem::Specification.new do |s|
   s.homepage = 'http://rufus.rubyforge.org'
   s.rubyforge_project = 'rufus'
   s.summary = "tests strings of Ruby code for unauthorized patterns (exit, eval, ...)"
-  s.description = s.summary
+  s.description = %{
+    tests strings of Ruby code for unauthorized patterns (exit, eval, ...)
+  }
 
   #s.files = `git ls-files`.split("\n")
   s.files = Dir[

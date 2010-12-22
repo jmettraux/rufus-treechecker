@@ -24,7 +24,7 @@ CLEAN.include('pkg', 'rdoc')
 #task :default => :spec
 
 task :test do
-  sh 'ruby test/test.rb'
+  sh 'ruby -I. test/test.rb'
 end
 
 task :default => :test

@@ -126,20 +126,20 @@ module Rufus
 
     # pretty-prints the sexp tree of the given rubycode
     #
-    def ptree (rubycode)
+    def ptree(rubycode)
       puts stree(rubycode)
     end
 
     # returns the pretty-printed string of the given rubycode
     # (thanks ruby_parser).
     #
-    def stree (rubycode)
+    def stree(rubycode)
       "#{rubycode.inspect}\n =>\n#{parse(rubycode).inspect}"
     end
 
     # initializes the TreeChecker, expects a block
     #
-    def initialize (&block)
+    def initialize(&block)
 
       @root_set = RuleSet.new
       @set = RuleSet.new
@@ -160,7 +160,7 @@ module Rufus
     # Rufus::SecurityError if there is something excluded by the rules
     # specified at the initialization of the TreeChecker instance.
     #
-    def check (rubycode)
+    def check(rubycode)
 
       sexp = parse(rubycode)
 
@@ -184,7 +184,7 @@ module Rufus
 
     # Adds a set of checks (rules) to this treechecker. Returns self.
     #
-    def add_rules (&block)
+    def add_rules(&block)
 
       instance_eval(&block) if block
 
@@ -218,23 +218,23 @@ module Rufus
         rs
       end
 
-      def exclude_symbol (s, message)
+      def exclude_symbol(s, message)
 
         @excluded_symbols[s] = (message || ":#{s} is excluded")
       end
 
-      def accept_pattern (pat)
+      def accept_pattern(pat)
 
         (@accepted_patterns[pat.first] ||= []) << pat
       end
 
-      def exclude_pattern (pat, message)
+      def exclude_pattern(pat, message)
 
         (@excluded_patterns[pat.first] ||= []) << [
           pat, message || "#{pat.inspect} is excluded" ]
       end
 
-      def check (sexp)
+      def check(sexp)
 
         if sexp.is_a?(Symbol)
 
@@ -294,7 +294,7 @@ module Rufus
 
       protected
 
-      def check_pattern (sexp, pat)
+      def check_pattern(sexp, pat)
 
         return false if sexp.length < pat.length
 
@@ -313,14 +313,14 @@ module Rufus
     # Within the 'at_root' block, rules are added to the @root_checks, ie
     # they are evaluated only for the toplevel (root) sexp.
     #
-    def at_root (&block)
+    def at_root(&block)
 
       @current_set = @root_set
       add_rules(&block)
       @current_set = @set
     end
 
-    def extract_message (args)
+    def extract_message(args)
 
       message = nil
       args = args.dup
@@ -328,7 +328,7 @@ module Rufus
       [ args, message ]
     end
 
-    def expand_class (arg)
+    def expand_class(arg)
 
       if arg.is_a?(Class) or arg.is_a?(Module)
         [ parse(arg.to_s), parse("::#{arg.to_s}") ]
@@ -346,39 +346,39 @@ module Rufus
     #     tc.check('a = 2')         # ok
     #     tc.check('a = 2; b = 5')  # will raise an error as it's a block
     #
-    def exclude_head (head, message=nil)
+    def exclude_head(head, message=nil)
 
       @current_set.exclude_pattern(head, message)
     end
 
-    def exclude_symbol (*args)
+    def exclude_symbol(*args)
       args, message = extract_message(args)
       args.each { |a| @current_set.exclude_symbol(a, message) }
     end
 
-    def exclude_fcall (*args)
+    def exclude_fcall(*args)
       do_exclude_pair(:fcall, args)
     end
 
-    def exclude_vcall (*args)
+    def exclude_vcall(*args)
       do_exclude_pair(:vcall, args)
     end
 
-    def exclude_fvcall (*args)
+    def exclude_fvcall(*args)
       do_exclude_pair(:fcall, args)
       do_exclude_pair(:vcall, args)
     end
 
-    def exclude_call_on (*args)
+    def exclude_call_on(*args)
       do_exclude_pair(:call, args)
     end
 
-    def exclude_call_to (*args)
+    def exclude_call_to(*args)
       args, message = extract_message(args)
       args.each { |a| @current_set.exclude_pattern([ :call, :any, a], message) }
     end
 
-    def exclude_fvccall (*args)
+    def exclude_fvccall(*args)
       exclude_fvcall(*args)
       exclude_call_to(*args)
     end
@@ -392,7 +392,7 @@ module Rufus
     #     k = Kernel
     #     k = ::Kernel
     #
-    def exclude_rebinding (*args)
+    def exclude_rebinding(*args)
       args, message = extract_message(args)
       args.each do |a|
         expand_class(a).each do |c|
@@ -405,7 +405,7 @@ module Rufus
     # prevents access (calling methods and rebinding) to a class (or a list
     # of classes
     #
-    def exclude_access_to (*args)
+    def exclude_access_to(*args)
       exclude_call_on *args
       exclude_rebinding *args
     end
@@ -499,7 +499,7 @@ module Rufus
 
     # The actual check method, check() is rather a bootstrap one...
     #
-    def do_check (sexp)
+    def do_check(sexp)
 
       @set.check(sexp)
 
@@ -512,7 +512,7 @@ module Rufus
 
     # A simple parse (relies on ruby_parser currently)
     #
-    def parse (rubycode)
+    def parse(rubycode)
 
       #(@parser ||= RubyParser.new).parse(rubycode).to_a
         #
@@ -523,3 +523,4 @@ module Rufus
     end
   end
 end
+
