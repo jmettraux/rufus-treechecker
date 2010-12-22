@@ -4,6 +4,7 @@
 
 == rufus-treechecker - 1.0.4   not yet released
 
+- require rufus/tree_checker and rufus-tree_checker
 - Rufus::Treechecker.parse(code) => tree
 
 
