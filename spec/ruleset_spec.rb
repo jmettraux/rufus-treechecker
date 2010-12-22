@@ -25,6 +25,7 @@ describe Rufus::TreeChecker do
         exclude_fvccall :abort
         exclude_fvccall :exit, :exit!
         exclude_fvccall :system
+        exclude_fvccall :at_exit
         exclude_eval
         exclude_alias
         exclude_global_vars
@@ -78,7 +79,10 @@ describe Rufus::TreeChecker do
 
       "class String; end",
       "module Whatever; end",
-      "class << e; end"
+      "class << e; end",
+
+      "at_exit { puts 'over.' }",
+      "Kernel.at_exit { puts 'over.' }"
     ].each do |code|
 
       it "blocks #{code.inspect}" do
