@@ -127,6 +127,7 @@ module Rufus
     # pretty-prints the sexp tree of the given rubycode
     #
     def ptree(rubycode)
+
       puts stree(rubycode)
     end
 
@@ -134,6 +135,7 @@ module Rufus
     # (thanks ruby_parser).
     #
     def stree(rubycode)
+
       "#{rubycode.inspect}\n =>\n#{parse(rubycode).inspect}"
     end
 
@@ -149,6 +151,7 @@ module Rufus
     end
 
     def to_s
+
       s = "#{self.class} (#{self.object_id})\n"
       s << "root_set :\n"
       s << @root_set.to_s
@@ -194,6 +197,7 @@ module Rufus
     # Freezes the treechecker instance "in depth"
     #
     def freeze
+
       super
       @root_set.freeze
       @set.freeze
@@ -211,10 +215,12 @@ module Rufus
       end
 
       def clone
+
         rs = RuleSet.new
         rs.instance_variable_set(:@excluded_symbols, @excluded_symbols.dup)
         rs.instance_variable_set(:@accepted_patterns, @accepted_patterns.dup)
         rs.instance_variable_set(:@excluded_patterns, @excluded_patterns.dup)
+
         rs
       end
 
@@ -236,10 +242,9 @@ module Rufus
 
       def check(sexp)
 
-        if sexp.is_a?(Symbol)
+        if sexp.is_a?(Symbol) and m = @excluded_symbols[sexp]
 
-          m = @excluded_symbols[sexp]
-          raise SecurityError.new(m) if m
+          raise SecurityError.new(m)
 
         elsif sexp.is_a?(Array)
 
@@ -352,33 +357,40 @@ module Rufus
     end
 
     def exclude_symbol(*args)
+
       args, message = extract_message(args)
       args.each { |a| @current_set.exclude_symbol(a, message) }
     end
 
     def exclude_fcall(*args)
+
       do_exclude_pair(:fcall, args)
     end
 
     def exclude_vcall(*args)
+
       do_exclude_pair(:vcall, args)
     end
 
     def exclude_fvcall(*args)
+
       do_exclude_pair(:fcall, args)
       do_exclude_pair(:vcall, args)
     end
 
     def exclude_call_on(*args)
+
       do_exclude_pair(:call, args)
     end
 
     def exclude_call_to(*args)
+
       args, message = extract_message(args)
       args.each { |a| @current_set.exclude_pattern([ :call, :any, a], message) }
     end
 
     def exclude_fvccall(*args)
+
       exclude_fvcall(*args)
       exclude_call_to(*args)
     end
@@ -393,7 +405,9 @@ module Rufus
     #     k = ::Kernel
     #
     def exclude_rebinding(*args)
+
       args, message = extract_message(args)
+
       args.each do |a|
         expand_class(a).each do |c|
           @current_set.exclude_pattern([ :lasgn, :any, c], message)
@@ -406,6 +420,7 @@ module Rufus
     # of classes
     #
     def exclude_access_to(*args)
+
       exclude_call_on *args
       exclude_rebinding *args
     end
@@ -507,7 +522,7 @@ module Rufus
 
       # check children
 
-      sexp.each { |c| do_check c }
+      sexp.each { |c| do_check(c) }
     end
 
     # A simple parse (relies on ruby_parser currently)

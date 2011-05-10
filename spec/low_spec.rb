@@ -89,11 +89,18 @@ describe Rufus::TreeChecker do
     [
 
       'def drink; "water"; end',
-      'class Toto; def drink; "water"; end; end'
+      'class Toto; def drink; "water"; end; end',
+      %{
+class Whatever
+  def eat
+    "food"
+  end
+end
+      }
 
     ].each do |code|
 
-      it "blocks '#{code}'" do
+      it "blocks #{code.inspect}" do
         lambda { tc.check(code) }.should raise_error(Rufus::SecurityError)
       end
     end
