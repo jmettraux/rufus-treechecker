@@ -122,7 +122,7 @@ module Rufus
   #
   class TreeChecker
 
-    VERSION = '1.0.5'
+    VERSION = '1.0.6'
 
     # pretty-prints the sexp tree of the given rubycode
     #
