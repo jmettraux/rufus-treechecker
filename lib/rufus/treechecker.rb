@@ -179,9 +179,11 @@ module Rufus
     #
     def clone
 
-      tc = TreeChecker.new
+      tc = TreeChecker.allocate
       tc.instance_variable_set(:@root_set, @root_set.clone)
       tc.instance_variable_set(:@set, @set.clone)
+      tc.instance_variable_set(:@current_set, tc.instance_variable_get(:@set))
+
       tc
     end
 
@@ -207,6 +209,10 @@ module Rufus
 
     class RuleSet
 
+      # Mostly for easier specs
+      #
+      attr_accessor :excluded_symbols, :accepted_patterns, :excluded_patterns
+
       def initialize
 
         @excluded_symbols = {} # symbol => exclusion_message
@@ -217,9 +223,9 @@ module Rufus
       def clone
 
         rs = RuleSet.new
-        rs.instance_variable_set(:@excluded_symbols, @excluded_symbols.dup)
-        rs.instance_variable_set(:@accepted_patterns, @accepted_patterns.dup)
-        rs.instance_variable_set(:@excluded_patterns, @excluded_patterns.dup)
+        rs.excluded_symbols = @excluded_symbols.dup
+        rs.accepted_patterns = @accepted_patterns.dup
+        rs.excluded_patterns = @excluded_patterns.dup
 
         rs
       end
@@ -295,6 +301,15 @@ module Rufus
           end
         end
         s
+      end
+
+      # Mostly a spec method
+      #
+      def ==(oth)
+
+        @excluded_symbols == oth.instance_variable_get(:@excluded_symbols) &&
+        @accepted_patterns == oth.instance_variable_get(:@accepted_patterns) &&
+        @excluded_patterns == oth.instance_variable_get(:@excluded_patterns)
       end
 
       protected

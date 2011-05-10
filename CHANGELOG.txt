@@ -2,6 +2,11 @@
 = rufus-treechecker CHANGELOG.txt
 
 
+== rufus-treechecker - 1.0.5   not yet released
+
+- clone then add_rules issue fix
+
+
 == rufus-treechecker - 1.0.4   released 2010/12/22
 
 - require rufus/tree_checker and rufus-tree_checker

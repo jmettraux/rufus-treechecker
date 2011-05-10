@@ -38,6 +38,30 @@ describe Rufus::TreeChecker do
 
       tc1.set.object_id.should_not == tc0.set.object_id
       tc1.root_set.object_id.should_not == tc0.root_set.object_id
+
+      tc1.set.should == tc0.set
+      tc1.root_set.should == tc0.root_set
+    end
+
+    it "sets @current_set correclty when cloning" do
+
+      tc0 = Rufus::TreeChecker.new
+
+      tc1 = tc0.clone
+
+      tc1.add_rules do
+        exclude_def
+      end
+
+      class << tc0
+        attr_reader :set, :root_set
+      end
+      class << tc1
+        attr_reader :set, :root_set
+      end
+
+      tc0.set.excluded_symbols.keys.should_not include(:defn)
+      tc1.set.excluded_symbols.keys.should include(:defn)
     end
   end
 end
