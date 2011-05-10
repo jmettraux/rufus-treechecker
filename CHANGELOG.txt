@@ -4,6 +4,8 @@
 
 == rufus-treechecker - 1.0.6   not yet released
 
+- clone then add_rules issue, the real fix
+
 
 == rufus-treechecker - 1.0.5   released 2011/05/10
 

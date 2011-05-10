@@ -179,12 +179,7 @@ module Rufus
     #
     def clone
 
-      tc = TreeChecker.allocate
-      tc.instance_variable_set(:@root_set, @root_set.clone)
-      tc.instance_variable_set(:@set, @set.clone)
-      tc.instance_variable_set(:@current_set, tc.instance_variable_get(:@set))
-
-      tc
+      Marshal.load(Marshal.dump(self))
     end
 
     # Adds a set of checks (rules) to this treechecker. Returns self.
@@ -218,16 +213,6 @@ module Rufus
         @excluded_symbols = {} # symbol => exclusion_message
         @accepted_patterns = {} # 1st elt of pattern => pattern
         @excluded_patterns = {} # 1st elt of pattern => pattern, excl_message
-      end
-
-      def clone
-
-        rs = RuleSet.allocate
-        rs.excluded_symbols = @excluded_symbols.dup
-        rs.accepted_patterns = @accepted_patterns.dup
-        rs.excluded_patterns = @excluded_patterns.dup
-
-        rs
       end
 
       def exclude_symbol(s, message)

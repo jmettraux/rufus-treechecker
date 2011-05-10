@@ -66,9 +66,29 @@ describe Rufus::TreeChecker do
       tc1.set.excluded_patterns.size.should == 3
     end
 
-    it "doesn't fuck up" do
+    it "does deep copy" do
 
-      tc0 = Rufus::TreeChecker.new
+      tc0 = Rufus::TreeChecker.new do
+
+        exclude_fvccall :abort, :exit, :exit!
+        exclude_fvccall :system, :fork, :syscall, :trap, :require, :load
+        exclude_fvccall :at_exit
+
+        exclude_fvcall :private, :public, :protected
+
+        exclude_eval              # no eval, module_eval or instance_eval
+        exclude_backquotes        # no `rm -fR the/kitchen/sink`
+        exclude_alias             # no alias or aliast_method
+        exclude_global_vars       # $vars are off limits
+        exclude_module_tinkering  # no module opening
+
+        exclude_rebinding Kernel # no 'k = Kernel'
+
+        exclude_access_to(
+          IO, File, FileUtils, Process, Signal, Thread, ThreadGroup)
+
+        exclude_call_to :instance_variable_get, :instance_variable_set
+      end
 
       tc1 = tc0.clone
       tc1.add_rules do
@@ -86,13 +106,13 @@ describe Rufus::TreeChecker do
         end
       end
 
-      tc0.set.excluded_symbols.keys.should == []
-      tc1.set.excluded_symbols.keys.should == [ :defn ]
-      tc2.set.excluded_symbols.keys.should == []
+      tc0.set.excluded_symbols.keys.size.should == 6
+      tc1.set.excluded_symbols.keys.size.should == 7
+      tc2.set.excluded_symbols.keys.size.should == 6
 
-      tc0.set.excluded_patterns.size.should == 0
-      tc1.set.excluded_patterns.size.should == 0
-      tc2.set.excluded_patterns.size.should == 3
+      tc0.set.excluded_patterns[:fcall].size.should == 13
+      tc1.set.excluded_patterns[:fcall].size.should == 13
+      tc2.set.excluded_patterns[:fcall].size.should == 15
     end
   end
 end
