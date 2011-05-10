@@ -29,11 +29,10 @@ describe Rufus::TreeChecker do
 
       tc1 = tc0.clone
 
-      class << tc0
-        attr_reader :set, :root_set
-      end
-      class << tc1
-        attr_reader :set, :root_set
+      [ tc0, tc1 ].each do |tc|
+        class << tc
+          attr_reader :set, :root_set
+        end
       end
 
       tc1.set.object_id.should_not == tc0.set.object_id
@@ -43,7 +42,7 @@ describe Rufus::TreeChecker do
       tc1.root_set.should == tc0.root_set
     end
 
-    it "sets @current_set correclty when cloning" do
+    it "sets @current_set correctly when cloning" do
 
       tc0 = Rufus::TreeChecker.new
 
@@ -51,17 +50,49 @@ describe Rufus::TreeChecker do
 
       tc1.add_rules do
         exclude_def
+        exclude_raise
       end
 
-      class << tc0
-        attr_reader :set, :root_set
-      end
-      class << tc1
-        attr_reader :set, :root_set
+      [ tc0, tc1 ].each do |tc|
+        class << tc
+          attr_reader :set, :root_set
+        end
       end
 
       tc0.set.excluded_symbols.keys.should_not include(:defn)
       tc1.set.excluded_symbols.keys.should include(:defn)
+
+      tc0.set.excluded_patterns.size.should == 0
+      tc1.set.excluded_patterns.size.should == 3
+    end
+
+    it "doesn't fuck up" do
+
+      tc0 = Rufus::TreeChecker.new
+
+      tc1 = tc0.clone
+      tc1.add_rules do
+        exclude_def
+      end
+
+      tc2 = tc0.clone
+      tc2.add_rules do
+        exclude_raise
+      end
+
+      [ tc0, tc1, tc2 ].each do |tc|
+        class << tc
+          attr_reader :set, :root_set
+        end
+      end
+
+      tc0.set.excluded_symbols.keys.should == []
+      tc1.set.excluded_symbols.keys.should == [ :defn ]
+      tc2.set.excluded_symbols.keys.should == []
+
+      tc0.set.excluded_patterns.size.should == 0
+      tc1.set.excluded_patterns.size.should == 0
+      tc2.set.excluded_patterns.size.should == 3
     end
   end
 end

@@ -222,7 +222,7 @@ module Rufus
 
       def clone
 
-        rs = RuleSet.new
+        rs = RuleSet.allocate
         rs.excluded_symbols = @excluded_symbols.dup
         rs.accepted_patterns = @accepted_patterns.dup
         rs.excluded_patterns = @excluded_patterns.dup
