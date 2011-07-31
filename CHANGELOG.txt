@@ -2,7 +2,7 @@
 = rufus-treechecker CHANGELOG.txt
 
 
-== rufus-treechecker - 1.0.7   not yet released
+== rufus-treechecker - 1.0.7   released 2011/07/31
 
 - "rescue => e" not triggering "global vars forbidden" anymore
 
