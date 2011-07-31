@@ -19,7 +19,17 @@ describe Rufus::TreeChecker do
     end
 
     it 'does not block "1 + 1"' do
+
       lambda { tc.check("1 + 1") }.should_not raise_error
+    end
+
+    it 'does not block begin/rescue/end' do
+
+      tc.check(%{
+        begin
+        rescue => e
+        end
+      })
     end
 
     [

@@ -2,6 +2,11 @@
 = rufus-treechecker CHANGELOG.txt
 
 
+== rufus-treechecker - 1.0.7   not yet released
+
+- "rescue => e" not triggering "global vars forbidden" anymore
+
+
 == rufus-treechecker - 1.0.6   released 2011/05/10
 
 - clone then add_rules issue, the real fix

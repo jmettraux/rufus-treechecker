@@ -242,16 +242,17 @@ module Rufus
           # accepted patterns are evaluated before excluded patterns
           # if one is found the excluded patterns are skipped
 
-          pats = @accepted_patterns[sexp.first]
-          pats.each { |pat| return if check_pattern(sexp, pat) } if pats
+          pats = @accepted_patterns[sexp.first] || []
+          return false if pats.find { |pat| check_pattern(sexp, pat) }
 
-          pats = @excluded_patterns[sexp.first]
-          return unless pats
+          pats = @excluded_patterns[sexp.first] || []
 
           pats.each do |pat, msg|
             raise SecurityError.new(msg) if check_pattern(sexp, pat)
           end
         end
+
+        true
       end
 
       def freeze
@@ -303,11 +304,14 @@ module Rufus
 
         return false if sexp.length < pat.length
 
-        (1..pat.length-1).each do |i|
+        (1..pat.length - 1).each do |i|
+          #puts '.'
+          #p (pat[i], sexp[i])
+          #p (pat[i] != :any and pat[i] != sexp[i])
           return false if (pat[i] != :any and pat[i] != sexp[i])
         end
 
-        return true # we have a match
+        true # we have a match
       end
     end
 
@@ -432,7 +436,7 @@ module Rufus
       @current_set.exclude_symbol(:defn, 'method definitions are forbidden')
     end
 
-    # Bans the defintion and the [re]openening of classes
+    # Bans the definition and the [re]opening of classes
     #
     # a list of exceptions (classes) can be passed. Subclassing those
     # exceptions is permitted.
@@ -465,6 +469,9 @@ module Rufus
     # Bans referencing or setting the value of global variables
     #
     def exclude_global_vars
+
+      @current_set.accept_pattern([ :gvar, :$! ])
+        # "rescue => e" is accepted
 
       @current_set.exclude_symbol(:gvar, 'global vars are forbidden')
       @current_set.exclude_symbol(:gasgn, 'global vars are forbidden')
@@ -516,10 +523,15 @@ module Rufus
     #
     def do_check(sexp)
 
-      @set.check(sexp)
+      continue = @set.check(sexp)
 
-      return unless sexp.is_a?(Array) # check over, seems fine...
+      return unless continue
+        # found an accepted pattern, no need to dive into it
 
+      return unless sexp.is_a?(Array)
+        # check over, seems fine...
+
+      #
       # check children
 
       sexp.each { |c| do_check(c) }
