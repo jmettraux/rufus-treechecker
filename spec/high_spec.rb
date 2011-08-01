@@ -204,7 +204,8 @@ describe Rufus::TreeChecker do
 
     [
 
-      '`kill -9 whatever`'
+      '`kill -9 whatever`',
+      '[ 1, 2, 3 ].each { |i| `echo #{i}.txt` }'
 
     ].each do |code|
 

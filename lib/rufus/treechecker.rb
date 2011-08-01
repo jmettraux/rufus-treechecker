@@ -122,7 +122,7 @@ module Rufus
   #
   class TreeChecker
 
-    VERSION = '1.0.7'
+    VERSION = '1.0.8'
 
     # pretty-prints the sexp tree of the given rubycode
     #
@@ -499,6 +499,7 @@ module Rufus
     def exclude_backquotes
 
       @current_set.exclude_symbol(:xstr, 'backquotes are forbidden')
+      @current_set.exclude_symbol(:dxstr, 'backquotes are forbidden')
     end
 
     # Bans raise and throw

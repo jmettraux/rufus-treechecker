@@ -2,6 +2,11 @@
 = rufus-treechecker CHANGELOG.txt
 
 
+== rufus-treechecker - 1.0.8   not yet released
+
+- exclude_backquotes now intercepting `x #{y} z`
+
+
 == rufus-treechecker - 1.0.7   released 2011/07/31
 
 - "rescue => e" not triggering "global vars forbidden" anymore
