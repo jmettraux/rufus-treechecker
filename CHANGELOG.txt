@@ -2,7 +2,7 @@
 = rufus-treechecker CHANGELOG.txt
 
 
-== rufus-treechecker - 1.0.8   not yet released
+== rufus-treechecker - 1.0.8   released 2011/08/01
 
 - exclude_backquotes now intercepting `x #{y} z`
 
