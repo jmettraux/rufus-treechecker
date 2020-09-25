@@ -7,8 +7,7 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.authors = [ 'John Mettraux' ]
   s.email = [ 'jmettraux@gmail.com' ]
-  s.homepage = 'http://rufus.rubyforge.org'
-  s.rubyforge_project = 'rufus'
+  s.homepage = 'https://github.com/jmettraux/rufus-treechecker'
   s.summary = "tests strings of Ruby code for unauthorized patterns (exit, eval, ...)"
   s.description = %{
     tests strings of Ruby code for unauthorized patterns (exit, eval, ...)
